@@ -1,6 +1,6 @@
 ---
 name: rick-portal-handoff
-description: Create, update, validate, and hydrate from a caveman-compressed operational state file (system temp by default — `$TMPDIR/<repo-slug>-HANDOFF.md`, override with `$HANDOFF_PATH`) that lets a fresh session continue work without reading the old conversation. Use whenever the user wants to save/transfer session state, says "handoff", "/handoff", "hydrate", "/hydrate", "compacta a sessão", "salva o estado", "vou limpar o contexto", "continue de onde paramos", mentions context getting full (60%+), is about to /clear or switch tasks, or opens a session where the resolved handoff file exists with status != done. Also use to compress an existing verbose handoff.
+description: Create, update, validate, and hydrate from a caveman-compressed operational state file (system temp by default — `$TMPDIR/<repo-slug>-HANDOFF.md`, override with `$HANDOFF_PATH`) that lets a fresh session continue work without reading the old conversation. Use whenever the user wants to save/transfer session state, says "handoff", "/handoff", "hydrate", "/hydrate", "inicie lendo o handoff", "inicie lendo o handoff em <path>", "leia o handoff", "lendo o handoff", "read the handoff", "compacta a sessão", "salva o estado", "vou limpar o contexto", "continue de onde paramos", mentions context getting full (60%+), is about to /clear or switch tasks, or opens a session where the resolved handoff file exists with status != done. Any message that just points at a handoff file ("inicie lendo o handoff em /tmp/...") means HYDRATE: read-only briefing, never act. Also use to compress an existing verbose handoff.
 ---
 
 # rick-portal-handoff
@@ -45,14 +45,17 @@ Caveman compression on prose. Anchors stay byte-exact. File reread every hydrati
 
 Incremental habit: update `## State` + `## Next` at every real milestone, not only at session end. End-of-session write at 70% context = degraded model writing from degraded memory. Avoid.
 
-### 2. HYDRATE (fresh session)
+### 2. HYDRATE (fresh session) — READ-ONLY orientation, NEVER act
 
-1. Run `scripts/collect.sh` → live git state + `## handoff` block (resolved path + `exists:` flag). If `exists: no`, nothing to hydrate — tell user
-2. Read handoff at resolved path
-3. **Diff declared vs real.** Mismatch (files changed not in map, branch differs, status stale) → list divergences to user before anything else
-4. Restate: mission ≤ 5 bullets + first action
-5. Read ONLY files in `## Files` read-first list. No broad repo exploration — handoff is the map
-6. Then work
+**Hydrate = briefing, not work.** Output is a context summary; then STOP and wait for the human's go. NEVER in hydrate: edit a file, `git add`/commit/push, publish, run a `## Next` step, or run any build/test/destructive command. Reading is allowed; mutating is not.
+
+**Path:** if the user's message names a handoff path ("inicie lendo o handoff em /tmp/x.md"), use THAT exact path — it overrides the resolver. Otherwise run `scripts/handoff-path.sh` (or `scripts/collect.sh` `## handoff` block) to resolve it.
+
+1. Get the handoff path (message path wins, else resolver). If the file does not exist, tell user, stop
+2. Read the handoff file at that path
+3. **Diff declared vs real.** Mismatch (files changed not in map, branch differs, status stale) → note it in the summary
+4. Output a **≤2-paragraph context summary** of the prior session: what it was doing + key decisions + current state + what `## Next` proposes. Plain prose, no commands run
+5. STOP. List the proposed first action as a suggestion only. Wait for explicit human go before reading map files or doing anything else
 
 ### 3. VALIDATE (standalone)
 
