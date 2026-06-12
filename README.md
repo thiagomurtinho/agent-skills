@@ -1,6 +1,6 @@
 # agent-skills
 
-[![skills.sh](https://skills.sh/b/GH_OWNER/agent-skills)](https://skills.sh/GH_OWNER/agent-skills)
+[![skills.sh](https://skills.sh/b/thiagomurtinho/agent-skills)](https://skills.sh/thiagomurtinho/agent-skills)
 
 Reusable skills for AI coding agents (Claude Code, Codex, Cursor, and [50+ others](https://github.com/vercel-labs/skills#supported-agents)). Built around one principle: **AI prepares, human decides** — and the fewer tokens spent doing it, the better.
 
@@ -8,20 +8,20 @@ Reusable skills for AI coding agents (Claude Code, Codex, Cursor, and [50+ other
 
 ```bash
 # all skills
-npx skills add GH_OWNER/agent-skills
+npx skills add thiagomurtinho/agent-skills
 
 # one skill
-npx skills add GH_OWNER/agent-skills --skill cave-handoff
+npx skills add thiagomurtinho/agent-skills --skill rick-portal-handoff
 
 # global, Claude Code only, no prompts
-npx skills add GH_OWNER/agent-skills --skill cave-handoff -g -a claude-code -y
+npx skills add thiagomurtinho/agent-skills --skill rick-portal-handoff -g -a claude-code -y
 ```
 
 ## Skills
 
 | Skill | What | Why |
 | --- | --- | --- |
-| [cave-handoff](skills/cave-handoff/) | Session handoff as verifiable operational state — caveman-compressed `HANDOFF.md` + deterministic git collection + mechanical validation + hydration protocol | Fresh session continues work without reading old conversation. ~47% fewer chars than verbose handoff templates, 0% anchor loss, reread every hydration → savings compound |
+| [rick-portal-handoff](skills/rick-portal-handoff/) | Session handoff as verifiable operational state — caveman-compressed `HANDOFF.md` + deterministic git collection + mechanical validation + hydration protocol | Fresh session continues work without reading old conversation. ~47% fewer chars than verbose handoff templates, 0% anchor loss, reread every hydration → savings compound |
 
 ## Design principles
 
