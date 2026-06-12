@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""cave-handoff validate: mechanical lint for HANDOFF.md.
+"""rick-portal-handoff validate: mechanical lint for HANDOFF.md.
 
 Exit codes: 0 = clean, 1 = warnings, 2 = errors.
-Usage: validate.py [path/to/HANDOFF.md] (default: docs/ai/HANDOFF.md)
+Usage: validate.py [path/to/HANDOFF.md]
+Default path precedence: arg > $HANDOFF_PATH > $TMPDIR/<repo-slug>-HANDOFF.md
 """
+import os
 import re
 import subprocess
 import sys
@@ -18,8 +20,25 @@ MAX_CODE_BLOCK = 15
 errors, warnings = [], []
 
 
+def default_path() -> Path:
+    """Mirror scripts/handoff-path.sh: $HANDOFF_PATH > $TMPDIR/<repo-slug>-HANDOFF.md."""
+    env = os.environ.get("HANDOFF_PATH")
+    if env:
+        return Path(env)
+    tmp = os.environ.get("TMPDIR", "/tmp").rstrip("/")
+    try:
+        root = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+    except Exception:
+        root = ""
+    slug = Path(root).name if root else Path.cwd().name
+    return Path(tmp) / f"{slug}-HANDOFF.md"
+
+
 def main() -> int:
-    path = Path(sys.argv[1] if len(sys.argv) > 1 else "docs/ai/HANDOFF.md")
+    path = Path(sys.argv[1]) if len(sys.argv) > 1 else default_path()
     if not path.exists():
         print(f"ERROR: {path} not found")
         return 2
