@@ -22,6 +22,8 @@ npx skills add thiagomurtinho/agent-skills --skill rick-portal-handoff -g -a cla
 | Skill | What | Why |
 | --- | --- | --- |
 | [rick-portal-handoff](skills/rick-portal-handoff/) | Session handoff as verifiable operational state — caveman-compressed `HANDOFF.md` + deterministic git collection + mechanical validation + hydration protocol | Fresh session continues work without reading old conversation. ~47% fewer chars than verbose handoff templates, 0% anchor loss, reread every hydration → savings compound |
+| [codex-delegate](skills/codex-delegate/) | Delegate a one-off task to the Codex (OpenAI) CLI via a standalone passthrough wrapper — model/effort/sandbox routing baked in | Second-model opinion, mechanical processing, or isolated judge runs off the main agent's token budget. Self-contained: no host hooks or config |
+| [antigravity-delegate](skills/antigravity-delegate/) | Delegate a one-off task to the Antigravity (`agy` / Gemini) CLI via a standalone passthrough wrapper | Fast/cheap Gemini runs — smoke tests, scouting, second opinion — off the main agent's budget. Self-contained |
 
 ## Design principles
 
