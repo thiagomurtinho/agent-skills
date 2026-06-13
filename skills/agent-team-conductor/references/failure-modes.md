@@ -15,6 +15,10 @@ Load when a running team misbehaves. Each row is a documented limitation/failure
 | Team won't clean up / "active teammates" error | Cleanup checks for live teammates and refuses while any run. | Shut teammates down first (`TaskStop` / ask them to shut down — slow, they finish the in-flight tool call), confirm none active, then clean up **from the leader**. |
 | Orphaned tmux session after the team ended | Split-pane session not fully cleaned. | `tmux ls`, then `tmux kill-session -t <session-name>`. |
 | Tried to create a second team | **One team per leader** — hard limit; leader is fixed for its lifetime, no nesting. | Clean up the current team first, then create the new one. To restructure, restart from a session that becomes the new leader. |
+| Two teammates overwrote each other's work on the same file | **No worktree** — Teams doesn't isolate; disjointness was only a plan promise and the wave wasn't actually disjoint. | Re-partition so each teammate owns a disjoint file set; **sequence** same-file tasks instead of running them concurrently. Reconstruct the lost change from the PLAN doc / git. |
+| All teammates running the same model despite the roster | `CLAUDE_CODE_SUBAGENT_MODEL` is set — it overrides every teammate's frontmatter model, flattening the roster. | Unset it (or set `inherit`) and re-spawn. Routing only works when each teammate's own definition decides its model. |
+| Teammates' findings/diagnoses diverge and the team stalls or silently picks one | No native conflict resolution; teammates may overrule each other. | The **lead** resolves: gather both positions (the charter tells teammates to escalate divergence, not pick a side), decide, and update the task. Bake the resolution into the PLAN doc. |
+| Lost the run's history after cleanup | **Ephemeral team state** — no durable STATE.md; it dies with the team. | Prevention only: keep a versioned PLAN doc (owners, models, waves, deps, escalations) *during* the run. After cleanup the team state is unrecoverable. |
 
 ## Notes
 
