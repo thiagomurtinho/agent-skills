@@ -4,10 +4,10 @@ description: Create new local skills from scratch and improve existing ones, gro
 license: Proprietary
 metadata:
   author: thiago
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
-<skill-forge version="1.0.0">
+<skill-forge version="1.1.0">
 
 # Skill Forge
 
@@ -19,12 +19,13 @@ Core stance: a skill is a static document that teaches a procedure. Add what the
 Run this loop. Adapt order to where the user already is.
 
 1. **CAPTURE** — Extract intent from the conversation before asking anything.
-2. **GAP-FILL** — Ask only the OPEN QUESTIONS still unresolved. See `<open_questions>`.
-3. **SELECT** — Map task type → technique set. Load `references/technique-arsenal.md`. Inject only what fits.
-4. **DRAFT** — Write the skill against `assets/skill-template.md`.
-5. **VERIFY** — Self-audit against `<delivery_gate>`. Refine until pass.
-6. **TEST** (optional) — Run realistic prompts, review with user, iterate. See `<evaluation>`.
-7. **PACKAGE** — Present the folder. Optionally optimize the description.
+2. **ROUTE** — Confirm this is a skill at all, not a fact/guarantee/style that belongs elsewhere. See `<surface_fit>`.
+3. **GAP-FILL** — Ask only the OPEN QUESTIONS still unresolved. See `<open_questions>`.
+4. **SELECT** — Map task type → technique set. Load `references/technique-arsenal.md`. Inject only what fits.
+5. **DRAFT** — Write the skill against `assets/skill-template.md`.
+6. **VERIFY** — Self-audit against `<delivery_gate>`. Refine until pass.
+7. **TEST** (optional) — Run realistic prompts, review with user, iterate. See `<evaluation>`.
+8. **PACKAGE** — Present the folder. Optionally optimize the description.
 </operating_loop>
 
 <capture>
@@ -36,6 +37,18 @@ The conversation often already contains the skill. If the user says "turn this i
 
 Source material beats general knowledge. A skill grounded in the user's real runbooks, schemas, API quirks, and past fixes outperforms one synthesized from generic best-practice articles. If the user has such artifacts, request them before drafting.
 </capture>
+
+<surface_fit>
+Before asking task questions, settle the prior one the user usually skips: **is this even a skill?** A skill is advisory context the agent reads and *tries* to follow — never a hard guarantee, never the right home for a stable fact. Forging a skill for something that belongs elsewhere is the most common failure mode.
+
+Quick triage (load `references/surface-routing.md` when the answer isn't obvious):
+- Must the rule hold **every time, no matter what the model decides**? → not a skill. It's a **hook**/**permission**/**CI** guarantee. A skill can *describe* it, but say plainly the enforcement lives there.
+- Is it a **stable repo fact** (commands, architecture, conventions)? → **CLAUDE.md**, or **`.claude/rules/`** if scoped to a path.
+- Does it change **tone/format of every reply**? → **output style**. Need an **isolated context / restricted tools**? → **subagent**. Need an **external system**? → **MCP**. Bundling **many pieces to distribute**? → **plugin**.
+- A **reusable procedure that runs in the main context and loads on demand**? → **yes, a skill.** Proceed.
+
+On mismatch, name the better home in one line and offer the choice. A request can split — forge the procedure as a skill, and name the fact (CLAUDE.md) or guarantee (hook) companions instead of cramming all into the skill.
+</surface_fit>
 
 <open_questions>
 Do not interrogate. Ask only what you genuinely cannot infer from context. Default to 3-5 questions max, batched in one turn. Use the elicitation UI if available.
@@ -67,7 +80,7 @@ State your technique choices briefly to the user before or alongside the draft, 
 <output_standards>
 Emitted skills inherit six rules. Full skeleton in `assets/skill-template.md`.
 
-1. **Spec-valid frontmatter** — `name` (1-64 chars, `[a-z0-9-]`, no leading/trailing/double hyphen, matches folder); `description` (≤1024 chars, imperative, says what + when, pushy to fight under-triggering); `metadata.version` (quoted semver string, e.g. `"1.0.0"`). Optional `license`, `compatibility` (only if real env requirement), other `metadata` keys.
+1. **Spec-valid frontmatter** — `name` (1-64 chars, `[a-z0-9-]`, no leading/trailing/double hyphen, matches folder); `description` (≤1024 chars, imperative, says what + when, pushy to fight under-triggering); `metadata.version` (quoted semver string, e.g. `"1.0.0"`). Optional `license`, `compatibility` (only if real env requirement), other `metadata` keys. Reach for the rest of the frontmatter palette **only when the skill needs it**, each earning its place: `allowed-tools`/`disallowed-tools` (pre-approve/remove tools — required when the body uses `` !`cmd` `` dynamic context); `argument-hint`/`arguments` (the skill takes args); `disable-model-invocation: true` (user-only) or `user-invocable: false` (model-only); `context: fork` + `agent` (run the skill in an isolated subagent); `model`/`effort` (override the runtime). Don't add fields ceremonially — an unused field is noise.
 2. **Single root tag** — Wrap the *entire* body (title included) in one root tag named exactly after the skill, carrying the version: `<skill-name version="1.0.0">…</skill-name>`. No loose top-level tags — every semantic tag nests inside the root. The `version` attribute MUST equal frontmatter `metadata.version`; they are one value in two places, so a context that loads the skill twice can prefer the newer copy. The Agent Skills spec doesn't mandate this root (the harness wraps activated skills in its own `<skill_content name=…>`, so expect a benign double-wrap at runtime) — it's a house convention for in-file delimiting and version arbitration. Bump *both* values together on every change.
 3. **Semantic tags + Markdown density** — Inside the root, use semantic XML tags as structural containers (`<workflow>`, `<gotchas>`, `<output_format>` …) only where structure earns >~10% clarity; Markdown *inside* tags for textual density. For short, linear, or subjective skills, take the escape hatch: no inner semantic tags, just clean Markdown — but the root tag still wraps it.
 4. **Code always fenced** — Any code, inside or outside XML tags, uses language-tagged Markdown fences. Never raw code in a tag.
@@ -80,6 +93,7 @@ Sizing: keep `SKILL.md` under ~500 lines / ~5000 tokens. Push detailed reference
 <delivery_gate>
 Self-audit the draft before handing it over. Refine until all pass (max 2-3 internal passes; if it won't converge, report the structural blocker instead of shipping a flawed skill):
 
+- Surface fit confirmed: this is a skill, not a fact/guarantee/style that belongs in CLAUDE.md / rules / hook / output style / subagent / MCP. Any "must-always" guarantee inside is acknowledged as advisory or paired with a hook/CI.
 - `name` valid and matches folder; `description` ≤1024 chars, imperative, covers what + when, pushy.
 - Body wrapped in a single `<skill-name version="…">` root (no loose top-level tags); the root `version` equals frontmatter `metadata.version`.
 - Body teaches a *procedure* that generalizes, not a one-off answer for a single instance.
@@ -114,8 +128,9 @@ Never produce skills containing malware, exploit code, data-exfiltration logic, 
 
 ## Reference files
 
-- `references/technique-arsenal.md` — Curated technique catalog with INCLUDED / CONDITIONAL / EXCLUDED tiers and per-technique selection gates. **Load during step 3 (SELECT)** before choosing what to inject.
-- `assets/skill-template.md` — The XML+Markdown skill skeleton plus a worked example. **Load during step 4 (DRAFT)** when writing the skill body.
-- `references/evaluation.md` — Full test/benchmark/review loop: workspace layout, subagent runs, grading, aggregation, the eval-viewer. **Load during step 6 (TEST)** when running the rigorous evaluation. Points to `references/schemas.md` for the JSON structures and to `agents/` for grader/comparator/analyzer subagent instructions.
+- `references/surface-routing.md` — Triage for "is this even a skill?": enforcement-first routing and skill-vs-neighbor-surface (CLAUDE.md / rules / hook / subagent / output style / MCP / plugin) table. **Load during step 2 (ROUTE)** when the surface fit isn't obvious.
+- `references/technique-arsenal.md` — Curated technique catalog with INCLUDED / CONDITIONAL / EXCLUDED tiers, per-technique gates, and a use-case→techniques quick map. **Load during step 4 (SELECT)** before choosing what to inject.
+- `assets/skill-template.md` — The XML+Markdown skill skeleton plus a worked example. **Load during step 5 (DRAFT)** when writing the skill body.
+- `references/evaluation.md` — Full test/benchmark/review loop: workspace layout, subagent runs, grading, aggregation, the eval-viewer. **Load during step 7 (TEST)** when running the rigorous evaluation. Points to `references/schemas.md` for the JSON structures and to `agents/` for grader/comparator/analyzer subagent instructions.
 
 </skill-forge>

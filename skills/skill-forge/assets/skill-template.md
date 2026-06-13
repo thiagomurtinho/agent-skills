@@ -14,6 +14,14 @@ metadata:
 # optional:
 # license: <name or LICENSE file>
 # compatibility: <only if a real env requirement — tools, packages, network, target product>
+# --- palette below: add ONLY the fields the skill actually needs, never ceremonially ---
+# allowed-tools: Bash(git *)   # pre-approve tools; REQUIRED when the body uses !`cmd` dynamic context
+# disallowed-tools: <tool>     # remove tools from the pool
+# argument-hint: <hint>        # / arguments: — when the skill takes args
+# disable-model-invocation: true   # user-only (no auto-trigger)   |   user-invocable: false  # model-only
+# context: fork                # run the skill in an isolated subagent…
+# agent: Explore               # …with this agent
+# model: haiku                 # / effort: — override the runtime for this skill
 ---
 ```
 
@@ -86,6 +94,21 @@ Run the extraction: `scripts/extract.py <input>` → writes `result.json`.
 ```markdown
 ## Reference files
 - `references/api-errors.md` — read this **if the API returns a non-200 status**.
+```
+
+- **Dynamic context** — inject live repo/git facts the agent must see before acting (needs `allowed-tools` for the command):
+
+```markdown
+## Context
+- Diff: !`git diff --stat`
+```
+
+- **Negative constraints** — only for a known trap the model keeps treating as a suggestion; don't list the obvious:
+
+```markdown
+<constraints>
+- Do **not** overwrite the source file — write to a new path.
+</constraints>
 ```
 
 ## Rules the template enforces
