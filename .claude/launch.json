@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "agent-team-dashboard",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "TEAM=dli-absorcao REPO='/Volumes/Shared HD/Source/ai-tools/research-harvester' PORT=4321 node skills/agent-team-dashboard/assets/server.js"
+      ],
+      "port": 4321
+    }
+  ]
+}
