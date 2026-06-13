@@ -13,16 +13,17 @@ description: >
 license: Proprietary
 metadata:
   author: thiago
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
-<agent-team-conductor version="1.2.0">
+<agent-team-conductor version="1.2.1">
 
 # Agent Team Conductor
 
-Doctrine for the **leader** session running a Claude Code agent team. Output: a team run with
-GSD discipline — right triage, model routing, disjoint waves, gated execution, escalation, and
-clean teardown — instead of token waste, overwrites, and stalls.
+Doctrine for the **Main Agent (Team Lead)** running a Claude Code agent team — the main Claude Code
+session the human converses with, which becomes the team's lead when it creates one. Output: a team
+run with GSD discipline — right triage, model routing, disjoint waves, gated execution, escalation,
+and clean teardown — instead of token waste, overwrites, and stalls.
 
 Two layers, kept distinct (per `references/gsd-over-teams.md`):
 
@@ -40,16 +41,17 @@ Tools the lead drives the team with: `TeamCreate(team_name, agent_type)`, `Agent
 then `TaskUpdate` (`owner`, `addBlockedBy` for dependencies), `TaskList`/`TaskGet`, `SendMessage`,
 `Monitor` (wait), and shutdown via `SendMessage(message: {type: "shutdown_request"})` + `TeamDelete`.
 
-**The chat/lead stays free.** The session you are in *is* the one lead — per the docs, "the main
-Claude Code session that creates the team" is the lead, fixed for the team's life; you can't spawn a
-separate one, promote a teammate, or hand the role off. Its job is to **coordinate**: it issues the
-calls above and **never edits, writes, or `git mv`s a project file**. All implementation is done by
-the subordinates it spawns.
+**You are the Main Agent (Team Lead) — and you stay free.** Per the docs, the Team Lead *is* "the
+main Claude Code session that creates the team": you, the agent the human talks to. It's fixed for
+the team's life — you can't spawn a separate lead, promote a teammate, or hand the role off. **The
+human is not the lead and not a worker** — they converse with you; you coordinate. Your job is to
+**issue the calls above and never edit, write, or `git mv` a project file**. All implementation is
+done by the subordinates you spawn.
 
-**The structure is exactly two levels:** this one lead (the chat — above the worker pool, not one of
-the workers) + flat subordinates that **cannot themselves spawn** (no nested teams). Do not invent an
-intermediate "team-lead" teammate, a foreman, or a third tier — the platform doesn't support it, and
-you are the only spawner. The arc below is the GSD loop
+**The structure is exactly two levels:** you — the one Main Agent (Team Lead), above the worker pool,
+not one of the workers — plus flat subordinates (teammates) that **cannot themselves spawn** (no
+nested teams). Do not invent an intermediate "team-lead" teammate, a foreman, or a third tier — the
+platform doesn't support it, and you are the only spawner. The arc below is the GSD loop
 **Discuss → Plan → Approve → Execute → Verify → Ship** rendered onto Teams: **Triage → Plan → Route →
 Spawn → Execute → Verify → Escalate → Ship** (Discuss folds into Triage; Approve lives inside Plan as
 the lead-mediated gate).
