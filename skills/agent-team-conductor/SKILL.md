@@ -13,10 +13,10 @@ description: >
 license: Proprietary
 metadata:
   author: thiago
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
-<agent-team-conductor version="1.1.0">
+<agent-team-conductor version="1.2.0">
 
 # Agent Team Conductor
 
@@ -35,11 +35,24 @@ The useful comparison is never "GSD or Teams" — it's **raw team vs. team + GSD
 is the **expensive exception**: each teammate is a full Claude session; token cost scales linearly
 per teammate plus coordination overhead. Justify it before `TeamCreate`.
 
-Tools the leader drives with: `TeamCreate`, `Agent` (`team_name`/`name`/`subagent_type` → spawn
-teammate), `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskGet`, `SendMessage`, `Monitor` (wait), `TaskStop`,
-`TeamDelete`. The arc below is the GSD loop **Discuss → Plan → Approve → Execute → Verify → Ship**
-rendered onto Teams: **Triage → Plan → Route → Spawn → Execute → Verify → Escalate → Ship** (Discuss
-folds into Triage; Approve lives inside Plan as the lead-mediated gate).
+Tools the lead drives the team with: `TeamCreate(team_name, agent_type)`, `Agent`
+(`team_name`/`name`/`subagent_type`/`prompt` → spawn a subordinate), `TaskCreate(subject, description)`
+then `TaskUpdate` (`owner`, `addBlockedBy` for dependencies), `TaskList`/`TaskGet`, `SendMessage`,
+`Monitor` (wait), and shutdown via `SendMessage(message: {type: "shutdown_request"})` + `TeamDelete`.
+
+**The chat/lead stays free.** The session you are in *is* the one lead — per the docs, "the main
+Claude Code session that creates the team" is the lead, fixed for the team's life; you can't spawn a
+separate one, promote a teammate, or hand the role off. Its job is to **coordinate**: it issues the
+calls above and **never edits, writes, or `git mv`s a project file**. All implementation is done by
+the subordinates it spawns.
+
+**The structure is exactly two levels:** this one lead (the chat — above the worker pool, not one of
+the workers) + flat subordinates that **cannot themselves spawn** (no nested teams). Do not invent an
+intermediate "team-lead" teammate, a foreman, or a third tier — the platform doesn't support it, and
+you are the only spawner. The arc below is the GSD loop
+**Discuss → Plan → Approve → Execute → Verify → Ship** rendered onto Teams: **Triage → Plan → Route →
+Spawn → Execute → Verify → Escalate → Ship** (Discuss folds into Triage; Approve lives inside Plan as
+the lead-mediated gate).
 
 <triage>
 Two decisions before spawning anything.
@@ -78,6 +91,29 @@ exists (one team per leader — hard limit). Non-zero exit = fix that first; don
 The **lead must be Opus at creation** — it's fixed for the team's life and does the expensive
 reasoning. Be on Opus before you create the team; the prior chat model is irrelevant.
 </preflight>
+
+<start>
+After preflight passes, the lead's exact bootstrap sequence — **these calls and coordination only,
+never an `Edit`/`Write`/`git mv` on a project file:**
+
+1. **Create the team.** `TeamCreate(team_name: "<team>", description: "<goal>", agent_type: "team-lead")`
+2. **Create the tasks.** `TaskCreate` takes only `subject` + `description` (the maximum-detail contract
+   goes in `description`). Set waves and ownership in a second step: `TaskUpdate(taskId: "2",
+   addBlockedBy: ["1"])` for dependencies, `TaskUpdate(taskId, owner: "<name>")` to assign.
+   Wave-0 / foundation (freezing a shared contract, constants) is **task #1, owned by one
+   subordinate**; later tasks are `addBlockedBy: ["1"]`. The lead does not author it.
+3. **Spawn the subordinates.** One per role, routed by the roster (`<roster>`), with the task contract
+   + charter as the prompt:
+   `Agent(team_name: "<team>", name: "builder-api", subagent_type: "sonnet-executor", prompt: "<task contract>\n\n<assets/teammate-charter.md>")`
+4. **Coordinate, don't work.** Wait for teammates; **idle after each turn is normal — it means
+   "waiting," not "done."** Steer with `SendMessage(to: "<name>", message: "...")`; audit with
+   `scripts/task-audit.sh`.
+5. **Shut down** via the lead: `SendMessage(to: "<name>", message: {type: "shutdown_request"})` to each.
+
+**Tripwire (the exact failure this prevents):** the moment after `TeamCreate`, your next tool calls
+are `TaskCreate` / `Agent` — *not* `Edit` / `Write` / `Bash git mv`. If you have touched a project
+file as the lead, you are doing a subordinate's job: stop, create the task, and spawn someone for it.
+</start>
 
 <plan>
 Decompose, gate, and partition before any teammate runs.
@@ -149,8 +185,10 @@ examples → `references/spawn-prompts.md`.
 <execute>
 Steer, don't substitute.
 
-- **Do not implement tasks yourself.** The leader coordinates. If you catch yourself editing instead
-  of delegating, stop. `Monitor` (or wait on idle notifications) until teammates finish.
+- **Do not implement tasks yourself — ever.** The lead coordinates; subordinates do 100% of the
+  implementation. If you are about to `Edit`/`Write`/`git mv` a project file, stop and delegate it as
+  a task. `Monitor` (or wait on idle notifications) until teammates finish — **a teammate going idle
+  after each turn is normal; it means "waiting," not "done."**
 - **Steer drift** early with `SendMessage`; don't let a wrong approach run to completion.
 - **Audit task health** instead of eyeballing:
 
@@ -185,8 +223,9 @@ went up). This keeps "go to Opus" from becoming the easy path that blows the bud
 </escalation>
 
 <cleanup>
-Always via the **leader**. Shut teammates down first (`TaskStop` / ask them to shut down — they may
-finish the in-flight tool call, so it's slow), confirm none active, then `TeamDelete` / clean up.
+Always via the **lead**. Shut teammates down first with `SendMessage(to: "<name>", message: {type:
+"shutdown_request"})` — they may finish the in-flight tool call, so it's slow; confirm none active,
+then `TeamDelete` / clean up.
 **Never** let a teammate run cleanup — its team context may not resolve, leaving shared state
 inconsistent. Before cleanup wipes the ephemeral team state, make sure the PLAN doc captured what's
 worth keeping.
