@@ -117,9 +117,10 @@ ephemerality — the auditability GSD wants but Teams doesn't give for free.
   ignoring each definition's frontmatter — flattening this whole roster to one model. Leave it unset
   (or `inherit`).
 - **Effort is per model.** `medium`/`high` for Sonnet, `high`/`xhigh` for Opus; Haiku ignores effort.
-  Unsupported levels fall back to the highest supported. Effort in a teammate definition's frontmatter
-  is honored by Teams per this roster; if your Claude Code version ignores it, state the intended
-  effort in the spawn prompt instead.
+  Unsupported levels fall back to the highest supported. **Effort is not a standard agent-definition
+  frontmatter field** (the `assets/roster/` files follow the cardápio agent form — `name`,
+  `description`, `tools`, `model` only). Set the intended effort when the lead assigns the task / spawns
+  the teammate; the roster table above documents the effort each role should run at.
 
 ## When the discipline pays — and when it's dead weight
 
