@@ -40,10 +40,16 @@ Tools the lead drives the team with: `TeamCreate(team_name, agent_type)`, `Agent
 then `TaskUpdate` (`owner`, `addBlockedBy` for dependencies), `TaskList`/`TaskGet`, `SendMessage`,
 `Monitor` (wait), and shutdown via `SendMessage(message: {type: "shutdown_request"})` + `TeamDelete`.
 
-**The chat/lead stays free.** The session you are in *is* the one lead — the substrate fixes the
-creator as lead for the team's life; you can't spawn a separate one or hand the role off. Its job is
-to **coordinate**: it issues the calls above and **never edits, writes, or `git mv`s a project
-file**. All implementation is done by the subordinates it spawns. The arc below is the GSD loop
+**The chat/lead stays free.** The session you are in *is* the one lead — per the docs, "the main
+Claude Code session that creates the team" is the lead, fixed for the team's life; you can't spawn a
+separate one, promote a teammate, or hand the role off. Its job is to **coordinate**: it issues the
+calls above and **never edits, writes, or `git mv`s a project file**. All implementation is done by
+the subordinates it spawns.
+
+**The structure is exactly two levels:** this one lead (the chat — above the worker pool, not one of
+the workers) + flat subordinates that **cannot themselves spawn** (no nested teams). Do not invent an
+intermediate "team-lead" teammate, a foreman, or a third tier — the platform doesn't support it, and
+you are the only spawner. The arc below is the GSD loop
 **Discuss → Plan → Approve → Execute → Verify → Ship** rendered onto Teams: **Triage → Plan → Route →
 Spawn → Execute → Verify → Escalate → Ship** (Discuss folds into Triage; Approve lives inside Plan as
 the lead-mediated gate).
