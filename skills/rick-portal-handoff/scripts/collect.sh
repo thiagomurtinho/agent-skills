@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cave-handoff collect: live git facts → stdout. Never stored in handoff.
+# rick-portal-handoff collect: live git facts → stdout. Never stored in handoff.
 set -euo pipefail
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
@@ -30,3 +30,10 @@ if [ -n "$UNTRACKED" ]; then
   echo "## untracked"
   echo "$UNTRACKED"
 fi
+
+# resolved handoff location (temp by default, $HANDOFF_PATH to override)
+echo
+echo "## handoff"
+HP="$("$(dirname "$0")/handoff-path.sh")"
+echo "path: $HP"
+[ -f "$HP" ] && echo "exists: yes" || echo "exists: no"
