@@ -12,6 +12,8 @@ Loaded during **SELECT**. Pick techniques by task type. The arsenal is filtered 
 | Open-ended design / architecture | Tree-of-Thoughts (conditional), calibrated freedom |
 | Subjective / creative (writing, design) | escape hatch (clean Markdown), few-shot exemplars, minimal prescription, usually no test cases |
 | Domain expert procedure | meta-prompt persona (conditional), gotchas, references by variant |
+| Long-horizon (migration, large refactor) | note-taking (conditional), checklist, orchestrator–workers (conditional), references by variant |
+| Git/repo-driven workflow | generated knowledge (`` !`cmd` ``), `allowed-tools`, validation loop |
 
 ## INCLUDED — native to skills
 
@@ -30,6 +32,9 @@ Loaded during **SELECT**. Pick techniques by task type. The arsenal is filtered 
 | Few-shot examples | Format/pattern is easier shown than described | 1-5 diverse Input→(reasoning)→Output cases. |
 | Default + escape hatch | Multiple valid tools/approaches | one default with brief mention of the alternative; never an equal-options menu. |
 | Groundedness | Fabrication risk (factual answers, extraction) | "Missing data → declare 'N/A'/'insufficient'. Never invent." Cite sources when grounded in documents. |
+| Negative delimitation | Known recurring trap the model treats as a mere suggestion | Explicit "do **not** X" list (`<must-not>` or a bold bullet). Use sparingly — only where a positive instruction won't hold. Distinct from Groundedness (which covers fabrication specifically). |
+| Generated knowledge / dynamic context | The skill needs live repo/git/file facts the agent must see *before* acting | Inline `` !`command` `` or a `` ```! `` block in `SKILL.md` runs the shell first and injects the output (e.g. `Diff: !`git diff --stat``). Pair with `allowed-tools` for the command. Derive facts, don't hardcode them. |
+| Prompt chaining | One task splits into sequential transforms, each needing full attention | Number the stages in the workflow; for heavy stages, materialize as skills invoked in sequence or chained subagents. Each link gets a clean focus; isolates the failing step. |
 | Domain organization | One skill spans multiple frameworks/variants | `references/<variant>.md`; agent reads only the relevant file. |
 
 ## CONDITIONAL — gated, never default
@@ -40,6 +45,8 @@ Loaded during **SELECT**. Pick techniques by task type. The arsenal is filtered 
 | Tree-of-Thoughts | Genuinely open design task with real trade-offs between distinct approaches | "Generate N approaches → weigh trade-offs → select." Overkill for procedural skills; do not force into every skill. |
 | Meta-prompt persona | A specific expert framing measurably changes output quality | e.g. "Act as a staff-level X." Skip when it's decorative. |
 | ReAct | Skill drives tools in a loop where reasoning must interleave with actions | reason→act→observe→repeat. Irrelevant to non-tool skills. |
+| Note-taking / structured memory | Long-horizon skill (migration, refactor) tracks state across many steps | Instruct writing progress/state to a `NOTES.md` or task list and re-reading it — fights context rot. Not for short skills. |
+| Orchestrator–workers | Skill genuinely coordinates parallel sub-tasks with separable concerns | Delegate to subagents (`Agent(...)`) returning condensed summaries; synthesize. Overkill for linear skills — a single pass is cheaper. |
 
 ## EXCLUDED — do not bake into a SKILL.md
 
@@ -51,8 +58,25 @@ These are runtime/agent-harness/API mechanics, not portable skill content. A ski
 | Reasoning-effort / thinking-budget knobs | Model/API runtime config; not portable across clients; not skill body content. |
 | Prefilling assistant turn | API-layer mechanic; unavailable in extended thinking; not expressible in a static skill. |
 | "Continue until fully resolved" persistence blocks | Agent-harness/system-prompt concern; a skill shouldn't seize the whole control loop. |
+| Compaction / context-rot handling | Native to the client (auto-compaction, `PreCompact`/`PostCompact` hooks); a skill configures, doesn't author it. |
 
 If a user explicitly wants one of these, route it to the runtime layer (system prompt / API params / agent config), not into the emitted `SKILL.md`.
+
+## Use case → techniques (quick map)
+
+Cross-check after classifying. Each row is the *typical* set, not a mandate — calibrate to the actual skill.
+
+| Use case | Techniques |
+|---|---|
+| Structured extraction / parsing | output template + groundedness + (script if repeated). Field absent → `null`. |
+| Classification / labeling | few-shot (diverse, canonical) + negative delimitation. |
+| Multi-source research | prompt chaining + orchestrator–workers + groundedness (cite provenance). |
+| Code review | meta-prompt persona + negative delimitation + output template (severity tiers). Pair with a read-only subagent. |
+| Debugging | ReAct (tools) + validation loop. Root cause + minimal fix + verify. |
+| Feature implementation | plan-validate-execute + validation loop (tests as evidence). Guarantee → hook/CI, not the skill. |
+| Documentation generation | generated knowledge + groundedness + output template. Document only what the code supports. |
+| Critical decision / trade-offs | Tree-of-Thoughts + Reflexion. Present pros/cons, select global optimum. |
+| Untrusted input (email/web) | XML delimitation isolating the input + negative delimitation. Tags alone don't sanitize. |
 
 ## Anti-patterns to avoid in emitted skills
 
