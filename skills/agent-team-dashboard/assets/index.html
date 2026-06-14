@@ -201,12 +201,52 @@
     -webkit-mask-image:linear-gradient(180deg,#000 70%,transparent)}
   .ev.open .bd{max-height:none;-webkit-mask-image:none}
   .ev.say{border-left-color:var(--muted)} .ev.send{border-left-color:var(--accent)} .ev.recv{border-left-color:var(--ok)}
+  .openfull{cursor:pointer;text-align:center;font-size:12px;color:var(--accent);background:var(--panel-2);
+    border:1px dashed var(--border-2);border-radius:10px;margin:6px 8px;padding:9px;transition:.15s}
+  .openfull:hover{border-color:var(--accent);background:rgba(193,95,60,.08)}
   .filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 8px 4px}
   .filters .f{cursor:pointer;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);background:var(--panel-2)}
   .filters .f.off{opacity:.4}
   .empty{color:var(--faint);font-size:12px;padding:18px;text-align:center}
   .chip.ro{color:var(--accent);border-color:var(--accent);background:transparent;cursor:help;font-family:var(--font)}
-  @media(max-width:620px){.chip.ro{display:none}}
+  @media(max-width:620px){header.bar .chip.ro{display:none}}
+
+  /* full per-agent chat overlay */
+  .chatov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);
+    display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(3px)}
+  .chatov[hidden]{display:none}
+  .chatbox{width:min(860px,100%);height:min(88vh,100%);display:flex;flex-direction:column;overflow:hidden}
+  .chathd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+  .chathd .chatav{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:11px;color:#1C1917;flex:0 0 auto}
+  .chathd .chattitle{font-weight:700;font-size:15px}
+  .chathd .spacer{flex:1}
+  .chatbody{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .chatbody::-webkit-scrollbar{width:8px}.chatbody::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+  .row{font-size:13px;line-height:1.5}
+  .row .rlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin-bottom:3px;
+    display:flex;align-items:center;gap:6px}
+  .row .rlbl .rt{margin-left:auto;font-family:var(--mono);font-size:10px;text-transform:none}
+  .row.say .rtxt{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
+  .row.think{opacity:.72}
+  .row.think .rtxt{font-style:italic;color:var(--muted);white-space:pre-wrap;word-break:break-word;
+    max-height:60px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent)}
+  .row.think.open .rtxt{max-height:none;-webkit-mask-image:none}
+  .row.tool{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 11px}
+  .row.tool .rlbl{color:var(--accent)}
+  .row.tool .brief{font-family:var(--mono);font-size:11.5px;color:var(--txt);opacity:.9;
+    white-space:pre-wrap;word-break:break-word}
+  .row.tool .res{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;
+    white-space:pre-wrap;word-break:break-word;max-height:0;overflow:hidden;transition:max-height .2s}
+  .row.tool.open .res{max-height:360px;overflow:auto}
+  .row.send,.row.recv,.row.prompt{border-left:3px solid var(--c,#888);padding:8px 12px;border-radius:10px;
+    background:var(--panel-2);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .row.recv,.row.prompt{border-left-color:var(--ok)}
+  .row .sum{font-weight:600;margin-bottom:2px}
+  .row .bd{color:var(--muted);white-space:pre-wrap;word-break:break-word;max-height:80px;overflow:hidden;
+    -webkit-mask-image:linear-gradient(180deg,#000 70%,transparent)}
+  .row.open .bd{max-height:none;-webkit-mask-image:none}
+  .row .more{cursor:pointer;font-size:11px;color:var(--accent);margin-top:4px;user-select:none}
 </style>
 </head>
 <body>
@@ -272,6 +312,19 @@
         <div class="feed" id="feed"></div>
       </section>
     </div>
+  </div>
+</div>
+
+<div class="chatov" id="chatOv" hidden>
+  <div class="chatbox glass">
+    <div class="chathd">
+      <span class="chatav" id="chatAv"></span>
+      <span class="chattitle" id="chatTitle"></span>
+      <span class="chip ro" style="cursor:default">👁 somente leitura</span>
+      <span class="spacer"></span>
+      <button class="iconbtn" id="chatClose" title="fechar">✕</button>
+    </div>
+    <div class="chatbody" id="chatBody"></div>
   </div>
 </div>
 
@@ -356,7 +409,7 @@ function render(s){
     const badge=working?['b-work','trabalhando']:allDone?['b-done','concluído']:['b-idle','ocioso'];
     const st=working?('▶ #'+working.id+' '+stripF(working.subject).slice(0,30)):(mine.length?dn+' de '+mine.length+' tarefas':'sem tarefas');
     const mdl=prettyModel(a.model);
-    return `<div class="agent"><div class="av" style="background:${colorFor(a.name)}">${initials(a.name)}</div>
+    return `<div class="agent" data-agent="${esc(a.name)}" title="abrir chat de ${esc(a.name)}" style="cursor:pointer"><div class="av" style="background:${colorFor(a.name)}">${initials(a.name)}</div>
       <div><div class="nm">${a.name}${mdl?`<span class="mdl" title="${esc(a.model)}">${mdl}</span>`:''}</div><div class="st">${esc(st)}</div></div>
       <div class="meta"><span class="badge ${badge[0]}">${badge[1]}</span></div></div>`;
   }).join('')||'<div class="empty">sem agentes</div>';
@@ -413,7 +466,7 @@ async function renderAgentStream(name){
   try{const r=await fetch(API_BASE+'/api/agent/'+encodeURIComponent(name),{cache:'no-store'});if(r.ok)ev=(await r.json()).events||[];}catch{}
   if(convTab!==name)return; // trocou de aba durante o fetch
   document.getElementById('msgCount').textContent=ev.length;
-  document.getElementById('feed').innerHTML=ev.map((e,i)=>{
+  document.getElementById('feed').innerHTML=`<div class="openfull" data-agent="${esc(name)}">⤢ abrir chat completo de ${esc(name)} (pensamento + execuções)</div>`+ev.map((e,i)=>{
     const k='ev|'+name+'|'+e.ts+'|'+i, isOpen=openMsgs.has(k);
     if(e.kind==='say') return `<div class="ev say ${isOpen?'open':''}"><div class="hd"><span class="k">diz</span><span class="t">${ago(e.ts)} atrás</span></div>
       <div class="bd">${esc(e.text)}</div>${e.text&&e.text.length>180?`<div class="more" data-k="${k}">${isOpen?'▲ menos':'▼ mais'}</div>`:''}</div>`;
@@ -424,9 +477,49 @@ async function renderAgentStream(name){
   }).join('')||'<div class="empty">sem atividade no transcript</div>';
 }
 
-document.getElementById('feed').addEventListener('click',e=>{const m=e.target.closest('.more');if(!m)return;const k=m.dataset.k;openMsgs.has(k)?openMsgs.delete(k):openMsgs.add(k);if(last)render(last);});
+document.getElementById('feed').addEventListener('click',e=>{const o=e.target.closest('.openfull');if(o){openChat(o.dataset.agent);return;}const m=e.target.closest('.more');if(!m)return;const k=m.dataset.k;openMsgs.has(k)?openMsgs.delete(k):openMsgs.add(k);if(last)render(last);});
 document.getElementById('filters').addEventListener('click',e=>{const f=e.target.closest('.f');if(!f)return;filterFrom=filterFrom===f.dataset.f?null:f.dataset.f;if(last)render(last);});
 document.getElementById('convTabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;convTab=t.dataset.tab;filterFrom=null;if(last)render(last);});
+
+// ---- full per-agent chat overlay (read-only, imita o chat) ----
+let chatName=null, chatEvents=[], chatOpen=new Set();
+async function openChat(name){
+  chatName=name; chatOpen=new Set(); chatSig='';
+  document.getElementById('chatTitle').textContent=name;
+  const av=document.getElementById('chatAv'); av.textContent=initials(name); av.style.background=colorFor(name);
+  document.getElementById('chatBody').innerHTML='<div class="empty">carregando…</div>';
+  document.getElementById('chatOv').hidden=false;
+  await loadChat();
+}
+let chatSig='';
+async function loadChat(){
+  const name=chatName; if(!name)return;
+  let ev=[];
+  try{const r=await fetch(API_BASE+'/api/agent/'+encodeURIComponent(name)+'/full',{cache:'no-store'});if(r.ok)ev=(await r.json()).events||[];}catch{}
+  if(chatName!==name)return;
+  const sig=name+'|'+ev.length+'|'+(ev.length?ev[ev.length-1].ts:'');
+  if(sig===chatSig)return; // nada novo → não re-renderiza (preserva scroll/expandidos)
+  chatSig=sig; chatEvents=ev; renderChat();
+}
+function renderChat(){
+  const body=document.getElementById('chatBody');
+  body.innerHTML=chatEvents.map((e,i)=>{
+    const k=i+'|'+e.ts, op=chatOpen.has(k);
+    const t=`<span class="rt">${ago(e.ts)} atrás</span>`;
+    if(e.kind==='think') return `<div class="row think ${op?'open':''}" data-k="${k}"><div class="rlbl">💭 pensamento ${t}</div><div class="rtxt">${esc(e.text)}</div></div>`;
+    if(e.kind==='say') return `<div class="row say"><div class="rtxt">${esc(e.text)}</div></div>`;
+    if(e.kind==='tool') return `<div class="row tool ${op?'open':''}" data-k="${k}"><div class="rlbl">🔧 ${esc(e.name)} ${t}</div>${e.brief?`<div class="brief">${esc(e.brief)}</div>`:''}${e.result?`<div class="res">${esc(e.result)}</div>`:''}</div>`;
+    if(e.kind==='send') return `<div class="row send ${op?'open':''}" data-k="${k}" style="--c:${colorFor(chatName)}"><div class="rlbl">→ envia a ${esc(e.to)} ${t}</div>${e.summary?`<div class="sum">${esc(e.summary)}</div>`:''}${e.text?`<div class="bd">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+    if(e.kind==='recv') return `<div class="row recv ${op?'open':''}" data-k="${k}" style="--c:${colorFor(e.from)}"><div class="rlbl">← recebe de ${esc(e.from)} ${t}</div>${e.summary?`<div class="sum">${esc(e.summary)}</div>`:''}${e.text?`<div class="bd">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+    return `<div class="row prompt ${op?'open':''}" data-k="${k}"><div class="rlbl">▸ prompt ${t}</div><div class="bd">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div></div>`;
+  }).join('')||'<div class="empty">sem atividade no transcript</div>';
+}
+function closeChat(){chatName=null;document.getElementById('chatOv').hidden=true;}
+document.getElementById('roster').addEventListener('click',e=>{const a=e.target.closest('.agent[data-agent]');if(!a)return;openChat(a.dataset.agent);});
+document.getElementById('chatClose').addEventListener('click',closeChat);
+document.getElementById('chatOv').addEventListener('click',e=>{if(e.target.id==='chatOv')closeChat();});
+document.getElementById('chatBody').addEventListener('click',e=>{const row=e.target.closest('.row[data-k]');if(!row)return;const k=row.dataset.k;chatOpen.has(k)?chatOpen.delete(k):chatOpen.add(k);renderChat();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('chatOv').hidden)closeChat();});
 document.getElementById('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...document.querySelectorAll('#seg button')].forEach(x=>x.classList.remove('on'));b.classList.add('on');REFRESH=+b.dataset.s;left=REFRESH;});
 document.getElementById('boardSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;boardMode=b.dataset.v;localStorage.setItem('boardMode',boardMode);[...document.querySelectorAll('#boardSeg button')].forEach(x=>x.classList.toggle('on',x.dataset.v===boardMode));if(last)render(last);});
 document.getElementById('theme').addEventListener('click',()=>{theme=theme==='light'?'dark':'light';localStorage.setItem('claude-dash-theme',theme);applyTheme();});
@@ -446,6 +539,13 @@ async function refresh(){
     if(API_BASE===null){API_BASE=await findBase();if(API_BASE===null)throw 0;}
     const r=await fetch(API_BASE+'/api/state',{cache:'no-store'});if(!r.ok)throw 0;
     last=await r.json();render(last);
+    if(chatName){ // chat aberto → tail vivo, segue o fim se já estava no fim
+      const body=document.getElementById('chatBody');
+      const atBottom=body.scrollHeight-body.scrollTop-body.clientHeight<60;
+      const prev=chatEvents.length;
+      await loadChat();
+      if(chatEvents.length!==prev&&atBottom)body.scrollTop=body.scrollHeight;
+    }
   }catch{API_BASE=null;document.getElementById('liveTxt').textContent='servidor offline — rode launch.sh';}
 }
 refresh();

@@ -2,3 +2,6 @@
 node_modules/
 __pycache__/
 *.skill
+# local, per-machine preview config for agent-team-dashboard (TEAM/REPO/PORT
+# hardcoded, dies with the team) — generated on demand, never shipped
+.claude/launch.json

@@ -30,6 +30,9 @@ const FEED_STORE = join(tmpdir(), `agent-team-dashboard-feed-${TEAM}.json`);
 
 const readJson = (p, fb) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fb; } };
 const asText = (v) => (typeof v === 'string' ? v : v == null ? '' : JSON.stringify(v));
+// noise filters: API rate-limit notices and idle pings aren't real chat
+const isApiErr = (t) => /^API Error:|temporarily limiting requests|usage limit reached/i.test((t || '').trim().slice(0, 90));
+const isIdlePing = (t) => /"type"\s*:\s*"idle_notification"/.test(t || '');
 
 // Encode a repo path the way ~/.claude/projects/ does (non-alphanumeric → '-').
 const PROJECT_DIR = join(HOME, '.claude', 'projects', REPO.replace(/[^a-zA-Z0-9]/g, '-'));
@@ -266,12 +269,12 @@ function fileEvents(f) {
     const role = o.message?.role;
     if (role === 'assistant' && Array.isArray(c)) {
       for (const b of c) {
-        if (b.type === 'text' && b.text && b.text.trim()) ev.push({ kind: 'say', ts, text: b.text });
+        if (b.type === 'text' && b.text && b.text.trim() && !isApiErr(b.text)) ev.push({ kind: 'say', ts, text: b.text });
         else if (b.type === 'tool_use' && b.name === 'SendMessage') ev.push({ kind: 'send', ts, to: asText(b.input?.to), summary: asText(b.input?.summary), text: asText(b.input?.message || b.input?.content) });
       }
     } else if (role === 'user') {
       const txt = Array.isArray(c) ? c.map((b) => b.text || '').join('') : (typeof c === 'string' ? c : '');
-      if (txt.includes('teammate-message')) {
+      if (txt.includes('teammate-message') && !isIdlePing(txt)) {
         const from = (txt.match(/teammate_id="([^"]+)"/) || [])[1] || '?';
         const summary = (txt.match(/summary="([^"]*)"/) || [])[1] || '';
         const body = txt.replace(/^[\s\S]*?<teammate-message[^>]*>/, '').replace(/<\/teammate-message>[\s\S]*$/, '').trim();
@@ -291,6 +294,71 @@ function agentStream(name) {
   if (name === 'team-lead') { const since = teamCreatedAt(); if (since) ev = ev.filter((e) => e.ts && e.ts >= since); }
   ev.sort((a, b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
   return ev.slice(-50);
+}
+
+// ---- Full chat view: a teammate's whole transcript like the Claude chat ----
+function toolBrief(name, input) {
+  if (!input) return '';
+  if (name === 'Bash') return asText(input.command).slice(0, 240);
+  if (['Read', 'Edit', 'Write', 'NotebookEdit'].includes(name)) return asText(input.file_path);
+  if (['Grep', 'Glob'].includes(name)) return asText(input.pattern || input.query);
+  if (['Task', 'Agent'].includes(name)) return asText(input.description || input.prompt).slice(0, 160);
+  if (name === 'TodoWrite' || name === 'TaskUpdate') return '';
+  return asText(JSON.stringify(input)).slice(0, 200);
+}
+
+const _fullCache = new Map();
+function fileEventsFull(f) {
+  let st; try { st = statSync(f); } catch { return []; }
+  const c0 = _fullCache.get(f);
+  if (c0 && c0.mtime === st.mtimeMs && c0.size === st.size) return c0.events;
+  let lines; try { lines = readFileSync(f, 'utf8').split('\n').filter(Boolean); } catch { return []; }
+  const results = {};
+  for (const l of lines) {
+    let o; try { o = JSON.parse(l); } catch { continue; }
+    const c = o.message?.content;
+    if (Array.isArray(c)) for (const b of c) if (b.type === 'tool_result' && b.tool_use_id) {
+      results[b.tool_use_id] = typeof b.content === 'string' ? b.content : Array.isArray(b.content) ? b.content.map((x) => x.text || '').join('') : '';
+    }
+  }
+  const ev = [];
+  for (const l of lines) {
+    let o; try { o = JSON.parse(l); } catch { continue; }
+    const ts = o.timestamp || '';
+    const c = o.message?.content;
+    const role = o.message?.role;
+    if (role === 'assistant' && Array.isArray(c)) {
+      for (const b of c) {
+        if (b.type === 'thinking' && b.thinking && b.thinking.trim()) ev.push({ kind: 'think', ts, text: b.thinking });
+        else if (b.type === 'text' && b.text && b.text.trim() && !isApiErr(b.text)) ev.push({ kind: 'say', ts, text: b.text });
+        else if (b.type === 'tool_use' && b.name === 'SendMessage') ev.push({ kind: 'send', ts, to: asText(b.input?.to), summary: asText(b.input?.summary), text: asText(b.input?.message || b.input?.content) });
+        else if (b.type === 'tool_use') ev.push({ kind: 'tool', ts, name: b.name, brief: toolBrief(b.name, b.input), result: (results[b.id] || '').slice(0, 2000) });
+      }
+    } else if (role === 'user') {
+      const txt = Array.isArray(c) ? c.map((b) => b.text || '').join('') : (typeof c === 'string' ? c : '');
+      const hasToolResult = Array.isArray(c) && c.some((b) => b.type === 'tool_result');
+      if (txt.includes('teammate-message') && !isIdlePing(txt)) {
+        const from = (txt.match(/teammate_id="([^"]+)"/) || [])[1] || '?';
+        const summary = (txt.match(/summary="([^"]*)"/) || [])[1] || '';
+        const body = txt.replace(/^[\s\S]*?<teammate-message[^>]*>/, '').replace(/<\/teammate-message>[\s\S]*$/, '').trim();
+        ev.push({ kind: 'recv', ts, from, summary, text: body });
+      } else if (txt.trim() && !hasToolResult && !isIdlePing(txt)) {
+        ev.push({ kind: 'prompt', ts, text: txt });
+      }
+    }
+  }
+  _fullCache.set(f, { mtime: st.mtimeMs, size: st.size, events: ev });
+  return ev;
+}
+
+function fullStream(name) {
+  const files = agentFiles()[name];
+  if (!files) return [];
+  let ev = [];
+  for (const f of files) ev = ev.concat(fileEventsFull(f));
+  if (name === 'team-lead') { const since = teamCreatedAt(); if (since) ev = ev.filter((e) => e.ts && e.ts >= since); }
+  ev.sort((a, b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
+  return ev.slice(-160);
 }
 
 function state() {
@@ -319,9 +387,11 @@ createServer((req, res) => {
     return;
   }
   if (req.url.startsWith('/api/agent/')) {
-    const name = decodeURIComponent(req.url.slice('/api/agent/'.length).split('?')[0]);
+    const rest = req.url.slice('/api/agent/'.length).split('?')[0];
+    const full = rest.endsWith('/full');
+    const name = decodeURIComponent(full ? rest.slice(0, -5) : rest);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });
-    res.end(JSON.stringify({ name, events: agentStream(name) }));
+    res.end(JSON.stringify({ name, events: full ? fullStream(name) : agentStream(name) }));
     return;
   }
   // serve index.html for everything else
