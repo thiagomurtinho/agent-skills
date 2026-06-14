@@ -221,32 +221,49 @@
     font-weight:700;font-size:11px;color:#1C1917;flex:0 0 auto}
   .chathd .chattitle{font-weight:700;font-size:15px}
   .chathd .spacer{flex:1}
-  .chatbody{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .chatbody{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
   .chatbody::-webkit-scrollbar{width:8px}.chatbody::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
-  .row{font-size:13px;line-height:1.5}
-  .row .rlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin-bottom:3px;
-    display:flex;align-items:center;gap:6px}
-  .row .rlbl .rt{margin-left:auto;font-family:var(--mono);font-size:10px;text-transform:none}
-  .row.say .rtxt{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
-  .row.think{opacity:.72}
-  .row.think .rtxt{font-style:italic;color:var(--muted);white-space:pre-wrap;word-break:break-word;
-    max-height:60px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent)}
-  .row.think.open .rtxt{max-height:none;-webkit-mask-image:none}
-  .row.tool{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 11px}
-  .row.tool .rlbl{color:var(--accent)}
-  .row.tool .brief{font-family:var(--mono);font-size:11.5px;color:var(--txt);opacity:.9;
-    white-space:pre-wrap;word-break:break-word}
-  .row.tool .res{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;
+  /* chat rows: agent's own (me) right, incoming (them) left */
+  .crow{display:flex;flex-direction:column;max-width:80%}
+  .crow.me{align-self:flex-end;align-items:flex-end}
+  .crow.them{align-self:flex-start;align-items:flex-start}
+  .crow .lbl{font-size:10.5px;color:var(--faint);margin:0 4px 3px;display:flex;gap:6px;align-items:baseline}
+  .crow .lbl .t{font-family:var(--mono);font-size:10px}
+  .bub{padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere}
+  .crow.me .bub{background:rgba(193,95,60,.14);border:1px solid rgba(193,95,60,.28);border-bottom-right-radius:4px}
+  body.light .crow.me .bub{background:rgba(193,95,60,.10)}
+  .crow.them .bub{background:var(--panel-2);border:1px solid var(--border);border-bottom-left-radius:4px}
+  .bub.clamp{max-height:300px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 82%,transparent)}
+  .bub.clamp.open{max-height:none;-webkit-mask-image:none}
+  /* rich markdown inside bubbles */
+  .bub p{margin:0 0 8px}.bub p:last-child{margin:0}
+  .bub h1,.bub h2,.bub h3{margin:6px 0 4px;font-size:14px;font-weight:700}
+  .bub ul,.bub ol{margin:4px 0;padding-left:20px}.bub li{margin:2px 0}
+  .bub code{font-family:var(--mono);font-size:12px;background:var(--track);padding:1px 5px;border-radius:5px}
+  .bub pre{background:var(--track);border-radius:8px;padding:9px 11px;overflow:auto;margin:6px 0}
+  .bub pre code{background:none;padding:0;font-size:11.5px}
+  .bub strong{font-weight:700}.bub a{color:var(--accent)}
+  .bub blockquote{border-left:3px solid var(--border-2);margin:4px 0;padding:0 10px;color:var(--muted)}
+  .crow .more{cursor:pointer;font-size:11px;color:var(--accent);margin:3px 4px 0;user-select:none}
+  /* thinking: subtle, no bubble */
+  .crow.think{max-width:80%}
+  .crow.think .bub{background:none;border:none;padding:6px 8px;font-style:italic;color:var(--muted);font-size:12.5px;opacity:.85}
+  /* tool: subtle inline, no heavy box */
+  .crow.tool{max-width:80%}
+  .crow.tool .tl{display:flex;gap:7px;align-items:baseline;font-size:12px;color:var(--muted);
+    padding:4px 8px;border-radius:8px;cursor:pointer}
+  .crow.tool .tl:hover{background:var(--panel-2)}
+  .crow.tool .tn{color:var(--accent);font-weight:600;font-size:11px}
+  .crow.tool .tc{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
+  .crow.tool .res{font-family:var(--mono);font-size:11px;color:var(--muted);margin:2px 8px 0;
     white-space:pre-wrap;word-break:break-word;max-height:0;overflow:hidden;transition:max-height .2s}
-  .row.tool.open .res{max-height:360px;overflow:auto}
-  .row.send,.row.recv,.row.prompt{border-left:3px solid var(--c,#888);padding:8px 12px;border-radius:10px;
-    background:var(--panel-2);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
-  .row.recv,.row.prompt{border-left-color:var(--ok)}
-  .row .sum{font-weight:600;margin-bottom:2px}
-  .row .bd{color:var(--muted);white-space:pre-wrap;word-break:break-word;max-height:80px;overflow:hidden;
-    -webkit-mask-image:linear-gradient(180deg,#000 70%,transparent)}
-  .row.open .bd{max-height:none;-webkit-mask-image:none}
-  .row .more{cursor:pointer;font-size:11px;color:var(--accent);margin-top:4px;user-select:none}
+  .crow.tool.open .res{max-height:340px;overflow:auto;border-left:2px solid var(--border-2);padding-left:8px}
+  /* json rendered as a small card */
+  .jcard{font-size:12.5px}
+  .jcard .jt{font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+  .jcard .jr{display:flex;gap:6px;margin:2px 0}
+  .jcard .jk{color:var(--faint);font-family:var(--mono);font-size:11px;flex:0 0 auto}
+  .jcard .jv{color:var(--txt);opacity:.92}
 </style>
 </head>
 <body>
@@ -339,6 +356,35 @@ const stripF=s=>s.replace(/^F\d[^—]*—\s*/,'');
 // claude-opus-4-8[1m] -> "opus 4.8" · claude-haiku-4-5-20251001 -> "haiku 4.5"
 const prettyModel=m=>{if(!m)return'';let s=m.replace(/^claude-/,'').replace(/\[.*?\]/,'').replace(/-\d{8}$/,'');
   return s.replace(/^(opus|sonnet|haiku|fable)-(\d+)-(\d+).*$/,'$1 $2.$3').replace(/^(opus|sonnet|haiku|fable)-(\d+).*$/,'$1 $2');};
+
+// minimal markdown → safe HTML (escape first, then format)
+function mdToHtml(src){
+  let s=esc(src||'');
+  s=s.replace(/```(\w*)\n?([\s\S]*?)```/g,(m,l,code)=>`<pre><code>${code.replace(/\n$/,'')}</code></pre>`);
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  s=s.replace(/^\s*&gt;\s?(.+)$/gm,'<blockquote>$1</blockquote>');
+  s=s.replace(/^#{1,6}\s+(.+)$/gm,'<h3>$1</h3>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,'$1<em>$2</em>');
+  s=s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/(?:^|\n)((?:\s*[-*]\s+.+(?:\n|$))+)/g,(m,blk)=>'\n<ul>'+blk.trim().split('\n').map(x=>'<li>'+x.replace(/^\s*[-*]\s+/,'')+'</li>').join('')+'</ul>');
+  return s.split(/\n{2,}/).map(p=>/^\s*<(h3|ul|pre|blockquote)/.test(p.trim())?p:`<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+}
+// JSON control messages → readable card
+function jsonToHtml(text){
+  const t=(text||'').trim(); if(t[0]!=='{')return null;
+  let o; try{o=JSON.parse(t);}catch{return null;}
+  if(!o||typeof o!=='object'||Array.isArray(o))return null;
+  const title=o.type||o.kind||'';
+  const order=['from','to','reason','summary','message','requestId','timestamp'];
+  const keys=[...order.filter(k=>k in o),...Object.keys(o).filter(k=>!['type','kind'].includes(k)&&!order.includes(k))];
+  const rows=keys.map(k=>{let v=o[k];if(v==null||v==='')return'';
+    if(k==='timestamp'){const d=new Date(v);if(!isNaN(d))v=ago(d.toISOString())+' atrás';}
+    v=typeof v==='object'?JSON.stringify(v):String(v);
+    return `<div class="jr"><span class="jk">${esc(k)}</span><span class="jv">${esc(v)}</span></div>`;}).join('');
+  return `<div class="jcard">${title?`<div class="jt">${esc(String(title).replace(/_/g,' '))}</div>`:''}${rows}</div>`;
+}
+const renderRich=text=>jsonToHtml(text)||mdToHtml(text);
 const CIRC=2*Math.PI*56;
 const STATUS_LANES=[{k:'blocked',t:'bloqueada',c:'var(--block)'},{k:'pending',t:'pendente',c:'var(--pend)'},{k:'in_progress',t:'em progresso',c:'var(--run)'},{k:'completed',t:'concluída',c:'var(--ok)'}];
 
@@ -503,22 +549,32 @@ async function loadChat(){
 }
 function renderChat(){
   const body=document.getElementById('chatBody');
+  const bubble=(e,k,op,side,lbl,leadHtml)=>{
+    const long=(e.text||'').length>600;
+    const html=(leadHtml||'')+renderRich(e.text);
+    return `<div class="crow ${side}" data-k="${k}">${lbl?`<div class="lbl">${lbl}</div>`:''}
+      <div class="bub ${long&&!op?'clamp':''} ${op?'open':''}">${html}</div>${long?`<div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+  };
   body.innerHTML=chatEvents.map((e,i)=>{
-    const k=i+'|'+e.ts, op=chatOpen.has(k);
-    const t=`<span class="rt">${ago(e.ts)} atrás</span>`;
-    if(e.kind==='think') return `<div class="row think ${op?'open':''}" data-k="${k}"><div class="rlbl">💭 pensamento ${t}</div><div class="rtxt">${esc(e.text)}</div></div>`;
-    if(e.kind==='say') return `<div class="row say"><div class="rtxt">${esc(e.text)}</div></div>`;
-    if(e.kind==='tool') return `<div class="row tool ${op?'open':''}" data-k="${k}"><div class="rlbl">🔧 ${esc(e.name)} ${t}</div>${e.brief?`<div class="brief">${esc(e.brief)}</div>`:''}${e.result?`<div class="res">${esc(e.result)}</div>`:''}</div>`;
-    if(e.kind==='send') return `<div class="row send ${op?'open':''}" data-k="${k}" style="--c:${colorFor(chatName)}"><div class="rlbl">→ envia a ${esc(e.to)} ${t}</div>${e.summary?`<div class="sum">${esc(e.summary)}</div>`:''}${e.text?`<div class="bd">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
-    if(e.kind==='recv') return `<div class="row recv ${op?'open':''}" data-k="${k}" style="--c:${colorFor(e.from)}"><div class="rlbl">← recebe de ${esc(e.from)} ${t}</div>${e.summary?`<div class="sum">${esc(e.summary)}</div>`:''}${e.text?`<div class="bd">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
-    return `<div class="row prompt ${op?'open':''}" data-k="${k}"><div class="rlbl">▸ prompt ${t}</div><div class="bd">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div></div>`;
+    const k=i+'|'+e.ts, op=chatOpen.has(k), t=`<span class="t">${ago(e.ts)} atrás</span>`;
+    if(e.kind==='think'){
+      const long=(e.text||'').length>400;
+      return `<div class="crow think me" data-k="${k}"><div class="lbl">💭 pensamento ${t}</div>
+        <div class="bub ${long&&!op?'clamp':''} ${op?'open':''}">${esc(e.text)}</div>${long?`<div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+    }
+    if(e.kind==='tool')
+      return `<div class="crow tool me ${op?'open':''}" data-k="${k}"><div class="tl"><span class="tn">🔧 ${esc(e.name)}</span><span class="tc">${esc(e.brief||'')}</span></div>${e.result?`<div class="res">${esc(e.result)}</div>`:''}</div>`;
+    if(e.kind==='say') return bubble(e,k,op,'me',t,'');
+    if(e.kind==='send') return bubble(e,k,op,'me',`→ ${esc(e.to)} ${t}`,e.summary?`<strong>${esc(e.summary)}</strong>${e.text?'<br>':''}`:'');
+    if(e.kind==='recv') return bubble(e,k,op,'them',`${esc(e.from)} ${t}`,e.summary?`<strong>${esc(e.summary)}</strong>${e.text?'<br>':''}`:'');
+    return bubble(e,k,op,'them',`prompt ${t}`,'');
   }).join('')||'<div class="empty">sem atividade no transcript</div>';
 }
 function closeChat(){chatName=null;document.getElementById('chatOv').hidden=true;}
 document.getElementById('roster').addEventListener('click',e=>{const a=e.target.closest('.agent[data-agent]');if(!a)return;openChat(a.dataset.agent);});
 document.getElementById('chatClose').addEventListener('click',closeChat);
 document.getElementById('chatOv').addEventListener('click',e=>{if(e.target.id==='chatOv')closeChat();});
-document.getElementById('chatBody').addEventListener('click',e=>{const row=e.target.closest('.row[data-k]');if(!row)return;const k=row.dataset.k;chatOpen.has(k)?chatOpen.delete(k):chatOpen.add(k);renderChat();});
+document.getElementById('chatBody').addEventListener('click',e=>{const trig=e.target.closest('.more')||e.target.closest('.crow.tool');if(!trig)return;const row=trig.closest('.crow[data-k]');if(!row)return;const k=row.dataset.k;chatOpen.has(k)?chatOpen.delete(k):chatOpen.add(k);renderChat();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('chatOv').hidden)closeChat();});
 document.getElementById('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...document.querySelectorAll('#seg button')].forEach(x=>x.classList.remove('on'));b.classList.add('on');REFRESH=+b.dataset.s;left=REFRESH;});
 document.getElementById('boardSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;boardMode=b.dataset.v;localStorage.setItem('boardMode',boardMode);[...document.querySelectorAll('#boardSeg button')].forEach(x=>x.classList.toggle('on',x.dataset.v===boardMode));if(last)render(last);});
