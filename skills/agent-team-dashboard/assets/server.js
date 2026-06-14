@@ -298,13 +298,20 @@ function agentStream(name) {
 
 // ---- Full chat view: a teammate's whole transcript like the Claude chat ----
 function toolBrief(name, input) {
-  if (!input) return '';
-  if (name === 'Bash') return asText(input.command).slice(0, 240);
-  if (['Read', 'Edit', 'Write', 'NotebookEdit'].includes(name)) return asText(input.file_path);
-  if (['Grep', 'Glob'].includes(name)) return asText(input.pattern || input.query);
-  if (['Task', 'Agent'].includes(name)) return asText(input.description || input.prompt).slice(0, 160);
-  if (name === 'TodoWrite' || name === 'TaskUpdate') return '';
-  return asText(JSON.stringify(input)).slice(0, 200);
+  const f = input; if (!f || typeof f !== 'object') return '';
+  if (name === 'Bash') return asText(f.command).slice(0, 240);
+  if (['Read', 'Edit', 'Write', 'NotebookEdit'].includes(name)) return asText(f.file_path);
+  if (['Grep', 'Glob', 'ToolSearch', 'WebSearch'].includes(name)) return asText(f.pattern || f.query);
+  if (['Task', 'Agent'].includes(name)) return asText(f.description || f.prompt).slice(0, 160);
+  if (name === 'TaskUpdate') return [f.taskId && ('#' + f.taskId), f.status].filter(Boolean).join(' ');
+  if (name === 'TaskCreate') return asText(f.subject || f.description).slice(0, 120);
+  if (name === 'WebFetch') return asText(f.url);
+  if (name === 'TodoWrite') return '';
+  // generic: first meaningful field — never dump raw JSON
+  for (const k of ['command', 'query', 'pattern', 'file_path', 'path', 'description', 'prompt', 'url', 'message', 'subject', 'name']) {
+    if (f[k]) return asText(f[k]).slice(0, 200);
+  }
+  return '';
 }
 
 const _fullCache = new Map();

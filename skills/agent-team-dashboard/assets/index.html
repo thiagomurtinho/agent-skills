@@ -536,6 +536,7 @@ async function openChat(name){
   document.getElementById('chatBody').innerHTML='<div class="empty">carregando…</div>';
   document.getElementById('chatOv').hidden=false;
   await loadChat();
+  const body=document.getElementById('chatBody'); body.scrollTop=body.scrollHeight; // abre na msg mais recente
 }
 let chatSig='';
 async function loadChat(){
