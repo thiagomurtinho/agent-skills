@@ -184,12 +184,86 @@
   .commit .hash{font-family:var(--mono);color:var(--core-dev-2);font-size:11px}
   .commit .sub{color:var(--txt);opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
   .commit .cd{margin-left:auto;color:var(--faint);font-family:var(--mono);font-size:10.5px;white-space:nowrap}
+  .convtabs{display:flex;gap:5px;flex-wrap:wrap;margin:8px 10px 4px}
+  .convtabs .tab{cursor:pointer;font-size:11.5px;padding:4px 11px;border-radius:99px;border:1px solid var(--border);
+    background:var(--panel-2);color:var(--muted);transition:.15s;white-space:nowrap}
+  .convtabs .tab:hover{border-color:var(--border-2)}
+  .convtabs .tab.on{background:rgba(193,95,60,.16);border-color:var(--accent);color:var(--accent);font-weight:600}
+  body.light .convtabs .tab.on{color:#8c3518}
+  .ev{padding:9px 13px;border-radius:11px;margin:6px 8px;background:var(--panel-2);
+    border:1px solid var(--border);border-left:3px solid var(--c,#888)}
+  .ev .hd{font-size:11.5px;font-weight:700;display:flex;align-items:baseline;gap:6px}
+  .ev .hd .k{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .ev .hd .t{margin-left:auto;font-size:10.5px;color:var(--faint);font-family:var(--mono);font-weight:400;white-space:nowrap}
+  .ev .sum{font-size:12.5px;color:var(--txt);opacity:.92;margin-top:3px}
+  .ev .bd{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45;white-space:pre-wrap;
+    word-break:break-word;overflow-wrap:anywhere;max-height:88px;overflow:hidden;
+    -webkit-mask-image:linear-gradient(180deg,#000 70%,transparent)}
+  .ev.open .bd{max-height:none;-webkit-mask-image:none}
+  .ev.say{border-left-color:var(--muted)} .ev.send{border-left-color:var(--accent)} .ev.recv{border-left-color:var(--ok)}
+  .openfull{cursor:pointer;text-align:center;font-size:12px;color:var(--accent);background:var(--panel-2);
+    border:1px dashed var(--border-2);border-radius:10px;margin:6px 8px;padding:9px;transition:.15s}
+  .openfull:hover{border-color:var(--accent);background:rgba(193,95,60,.08)}
   .filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 8px 4px}
   .filters .f{cursor:pointer;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);background:var(--panel-2)}
   .filters .f.off{opacity:.4}
   .empty{color:var(--faint);font-size:12px;padding:18px;text-align:center}
   .chip.ro{color:var(--accent);border-color:var(--accent);background:transparent;cursor:help;font-family:var(--font)}
-  @media(max-width:620px){.chip.ro{display:none}}
+  @media(max-width:620px){header.bar .chip.ro{display:none}}
+
+  /* full per-agent chat overlay */
+  .chatov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);
+    display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(3px)}
+  .chatov[hidden]{display:none}
+  .chatbox{width:min(860px,100%);height:min(88vh,100%);display:flex;flex-direction:column;overflow:hidden}
+  .chathd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+  .chathd .chatav{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:11px;color:#1C1917;flex:0 0 auto}
+  .chathd .chattitle{font-weight:700;font-size:15px}
+  .chathd .spacer{flex:1}
+  .chatbody{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+  .chatbody::-webkit-scrollbar{width:8px}.chatbody::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+  /* chat rows: agent's own (me) right, incoming (them) left */
+  .crow{display:flex;flex-direction:column;max-width:80%}
+  .crow.me{align-self:flex-end;align-items:flex-end}
+  .crow.them{align-self:flex-start;align-items:flex-start}
+  .crow .lbl{font-size:10.5px;color:var(--faint);margin:0 4px 3px;display:flex;gap:6px;align-items:baseline}
+  .crow .lbl .t{font-family:var(--mono);font-size:10px}
+  .bub{padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere}
+  .crow.me .bub{background:rgba(193,95,60,.14);border:1px solid rgba(193,95,60,.28);border-bottom-right-radius:4px}
+  body.light .crow.me .bub{background:rgba(193,95,60,.10)}
+  .crow.them .bub{background:var(--panel-2);border:1px solid var(--border);border-bottom-left-radius:4px}
+  .bub.clamp{max-height:200px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 78%,transparent)}
+  .bub.open{max-height:none;-webkit-mask-image:none}
+  /* rich markdown inside bubbles */
+  .bub p{margin:0 0 8px}.bub p:last-child{margin:0}
+  .bub h1,.bub h2,.bub h3{margin:6px 0 4px;font-size:14px;font-weight:700}
+  .bub ul,.bub ol{margin:4px 0;padding-left:20px}.bub li{margin:2px 0}
+  .bub code{font-family:var(--mono);font-size:12px;background:var(--track);padding:1px 5px;border-radius:5px}
+  .bub pre{background:var(--track);border-radius:8px;padding:9px 11px;overflow:auto;margin:6px 0}
+  .bub pre code{background:none;padding:0;font-size:11.5px}
+  .bub strong{font-weight:700}.bub a{color:var(--accent)}
+  .bub blockquote{border-left:3px solid var(--border-2);margin:4px 0;padding:0 10px;color:var(--muted)}
+  .crow .more{cursor:pointer;font-size:11px;color:var(--accent);margin:3px 4px 0;user-select:none}
+  /* thinking: subtle, no bubble */
+  .crow.think{max-width:80%}
+  .crow.think .bub{background:none;border:none;padding:6px 8px;font-style:italic;color:var(--muted);font-size:12.5px;opacity:.85}
+  /* tool: subtle inline, no heavy box */
+  .crow.tool{max-width:80%}
+  .crow.tool .tl{display:flex;gap:7px;align-items:baseline;font-size:12px;color:var(--muted);
+    padding:4px 8px;border-radius:8px;cursor:pointer}
+  .crow.tool .tl:hover{background:var(--panel-2)}
+  .crow.tool .tn{color:var(--accent);font-weight:600;font-size:11px}
+  .crow.tool .tc{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
+  .crow.tool .res{font-family:var(--mono);font-size:11px;color:var(--muted);margin:2px 8px 0;
+    white-space:pre-wrap;word-break:break-word;max-height:0;overflow:hidden;transition:max-height .2s}
+  .crow.tool.open .res{max-height:340px;overflow:auto;border-left:2px solid var(--border-2);padding-left:8px}
+  /* json rendered as a small card */
+  .jcard{font-size:12.5px}
+  .jcard .jt{font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+  .jcard .jr{display:flex;gap:6px;margin:2px 0}
+  .jcard .jk{color:var(--faint);font-family:var(--mono);font-size:11px;flex:0 0 auto}
+  .jcard .jv{color:var(--txt);opacity:.92}
 </style>
 </head>
 <body>
@@ -248,12 +322,26 @@
 
       <section class="glass sec-conversas">
         <div class="h" style="padding:16px 16px 0">conversas <span class="count" id="msgCount">0</span>
-          <span class="info" tabindex="0" title="Mostrando as últimas 100 mensagens.&#10;&#10;Os inboxes do harness guardam só mensagens não-lidas (drenam quando os agentes leem). O histórico completo é recuperado dos transcripts no boot e acumulado ao vivo. Total disponível no contador acima.">i</span>
+          <span class="info" id="convInfo" tabindex="0" title="">i</span>
         </div>
+        <div class="convtabs" id="convTabs"></div>
         <div class="filters" id="filters"></div>
         <div class="feed" id="feed"></div>
       </section>
     </div>
+  </div>
+</div>
+
+<div class="chatov" id="chatOv" hidden>
+  <div class="chatbox glass">
+    <div class="chathd">
+      <span class="chatav" id="chatAv"></span>
+      <span class="chattitle" id="chatTitle"></span>
+      <span class="chip ro" style="cursor:default">👁 somente leitura</span>
+      <span class="spacer"></span>
+      <button class="iconbtn" id="chatClose" title="fechar">✕</button>
+    </div>
+    <div class="chatbody" id="chatBody"></div>
   </div>
 </div>
 
@@ -268,10 +356,39 @@ const stripF=s=>s.replace(/^F\d[^—]*—\s*/,'');
 // claude-opus-4-8[1m] -> "opus 4.8" · claude-haiku-4-5-20251001 -> "haiku 4.5"
 const prettyModel=m=>{if(!m)return'';let s=m.replace(/^claude-/,'').replace(/\[.*?\]/,'').replace(/-\d{8}$/,'');
   return s.replace(/^(opus|sonnet|haiku|fable)-(\d+)-(\d+).*$/,'$1 $2.$3').replace(/^(opus|sonnet|haiku|fable)-(\d+).*$/,'$1 $2');};
+
+// minimal markdown → safe HTML (escape first, then format)
+function mdToHtml(src){
+  let s=esc(src||'');
+  s=s.replace(/```(\w*)\n?([\s\S]*?)```/g,(m,l,code)=>`<pre><code>${code.replace(/\n$/,'')}</code></pre>`);
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  s=s.replace(/^\s*&gt;\s?(.+)$/gm,'<blockquote>$1</blockquote>');
+  s=s.replace(/^#{1,6}\s+(.+)$/gm,'<h3>$1</h3>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,'$1<em>$2</em>');
+  s=s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/(?:^|\n)((?:\s*[-*]\s+.+(?:\n|$))+)/g,(m,blk)=>'\n<ul>'+blk.trim().split('\n').map(x=>'<li>'+x.replace(/^\s*[-*]\s+/,'')+'</li>').join('')+'</ul>');
+  return s.split(/\n{2,}/).map(p=>/^\s*<(h3|ul|pre|blockquote)/.test(p.trim())?p:`<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+}
+// JSON control messages → readable card
+function jsonToHtml(text){
+  const t=(text||'').trim(); if(t[0]!=='{')return null;
+  let o; try{o=JSON.parse(t);}catch{return null;}
+  if(!o||typeof o!=='object'||Array.isArray(o))return null;
+  const title=o.type||o.kind||'';
+  const order=['from','to','reason','summary','message','requestId','timestamp'];
+  const keys=[...order.filter(k=>k in o),...Object.keys(o).filter(k=>!['type','kind'].includes(k)&&!order.includes(k))];
+  const rows=keys.map(k=>{let v=o[k];if(v==null||v==='')return'';
+    if(k==='timestamp'){const d=new Date(v);if(!isNaN(d))v=ago(d.toISOString())+' atrás';}
+    v=typeof v==='object'?JSON.stringify(v):String(v);
+    return `<div class="jr"><span class="jk">${esc(k)}</span><span class="jv">${esc(v)}</span></div>`;}).join('');
+  return `<div class="jcard">${title?`<div class="jt">${esc(String(title).replace(/_/g,' '))}</div>`:''}${rows}</div>`;
+}
+const renderRich=text=>jsonToHtml(text)||mdToHtml(text);
 const CIRC=2*Math.PI*56;
 const STATUS_LANES=[{k:'blocked',t:'bloqueada',c:'var(--block)'},{k:'pending',t:'pendente',c:'var(--pend)'},{k:'in_progress',t:'em progresso',c:'var(--run)'},{k:'completed',t:'concluída',c:'var(--ok)'}];
 
-let REFRESH=4, left=4, filterFrom=null, openMsgs=new Set();
+let REFRESH=4, left=4, filterFrom=null, openMsgs=new Set(), convTab='shared';
 let boardMode=localStorage.getItem('boardMode')||'grade';
 const sysTheme=()=>matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';
 // 'claude-dash-theme' only set when user manually clicks toggle; otherwise always follow system
@@ -338,7 +455,7 @@ function render(s){
     const badge=working?['b-work','trabalhando']:allDone?['b-done','concluído']:['b-idle','ocioso'];
     const st=working?('▶ #'+working.id+' '+stripF(working.subject).slice(0,30)):(mine.length?dn+' de '+mine.length+' tarefas':'sem tarefas');
     const mdl=prettyModel(a.model);
-    return `<div class="agent"><div class="av" style="background:${colorFor(a.name)}">${initials(a.name)}</div>
+    return `<div class="agent" data-agent="${esc(a.name)}" title="abrir chat de ${esc(a.name)}" style="cursor:pointer"><div class="av" style="background:${colorFor(a.name)}">${initials(a.name)}</div>
       <div><div class="nm">${a.name}${mdl?`<span class="mdl" title="${esc(a.model)}">${mdl}</span>`:''}</div><div class="st">${esc(st)}</div></div>
       <div class="meta"><span class="badge ${badge[0]}">${badge[1]}</span></div></div>`;
   }).join('')||'<div class="empty">sem agentes</div>';
@@ -355,15 +472,28 @@ function render(s){
     `<div class="commit"><span class="hash">${c.hash}</span><span class="sub">${esc(c.subject)}</span><span class="cd">${ago(c.date)}</span></div>`
   ).join('')||'<div class="empty">sem commits</div>';
 
+  // tabs: compartilhado (feed entre agentes) + uma aba por agente (stream próprio)
+  // usa config (team vivo); cai pros agentes detectados nos transcripts (team já limpo)
+  const tabNames=ag.length?ag.map(a=>a.name):(s.streamAgents||[]);
+  if(convTab!=='shared'&&!tabNames.includes(convTab))convTab='shared';
+  document.getElementById('convTabs').innerHTML=
+    `<span class="tab ${convTab==='shared'?'on':''}" data-tab="shared">compartilhado</span>`+
+    tabNames.map(n=>`<span class="tab ${convTab===n?'on':''}" style="${convTab===n?`border-color:${colorFor(n)};color:${colorFor(n)}`:''}" data-tab="${n}">${esc(n)}</span>`).join('');
+
+  if(convTab==='shared') renderShared(s); else renderAgentStream(convTab);
+}
+
+function renderShared(s){
+  document.getElementById('filters').style.display='';
+  document.getElementById('convInfo').title='Mensagens entre os agentes (SendMessage). Histórico recuperado dos transcripts no boot + acumulado ao vivo; exibe as últimas 100 (total no contador).';
   const froms=[...new Set(s.messages.map(m=>m.from))];
   document.getElementById('filters').innerHTML=froms.map(f=>
     `<span class="f ${filterFrom&&filterFrom!==f?'off':''}" style="border-color:${colorFor(f)};color:${colorFor(f)}" data-f="${f}">${f}</span>`).join('');
-
   let msgs=s.messages.slice(); if(filterFrom)msgs=msgs.filter(m=>m.from===filterFrom);
   const totalMsgs=msgs.length;
-  msgs=msgs.slice(-100); // exibe só as últimas 100
+  msgs=msgs.slice(-100);
   document.getElementById('msgCount').textContent=totalMsgs>msgs.length?msgs.length+' / '+totalMsgs:totalMsgs;
-  document.getElementById('feed').innerHTML=msgs.map((m,i)=>{
+  document.getElementById('feed').innerHTML=msgs.map((m)=>{
     const c=colorFor(m.from), isOpen=openMsgs.has(m.from+'|'+m.ts);
     return `<div class="msg ${isOpen?'open':''}" style="--c:${c}"><div class="body">
       <div><span class="who" style="color:${c}">${m.from}</span> <span class="arrow">→</span> <span class="to">${m.to}</span>
@@ -374,8 +504,82 @@ function render(s){
   }).join('')||'<div class="empty">sem mensagens</div>';
 }
 
-document.getElementById('feed').addEventListener('click',e=>{const m=e.target.closest('.more');if(!m)return;const k=m.dataset.k;openMsgs.has(k)?openMsgs.delete(k):openMsgs.add(k);if(last)render(last);});
+async function renderAgentStream(name){
+  document.getElementById('filters').style.display='none';
+  document.getElementById('convInfo').title='Stream próprio do agente '+name+' (transcript): o que ele diz, envia (→) e recebe (←). Somente leitura, últimas 50.';
+  const c=colorFor(name);
+  let ev=[];
+  try{const r=await fetch(API_BASE+'/api/agent/'+encodeURIComponent(name),{cache:'no-store'});if(r.ok)ev=(await r.json()).events||[];}catch{}
+  if(convTab!==name)return; // trocou de aba durante o fetch
+  document.getElementById('msgCount').textContent=ev.length;
+  document.getElementById('feed').innerHTML=`<div class="openfull" data-agent="${esc(name)}">⤢ abrir chat completo de ${esc(name)} (pensamento + execuções)</div>`+ev.map((e,i)=>{
+    const k='ev|'+name+'|'+e.ts+'|'+i, isOpen=openMsgs.has(k);
+    if(e.kind==='say') return `<div class="ev say ${isOpen?'open':''}"><div class="hd"><span class="k">diz</span><span class="t">${ago(e.ts)} atrás</span></div>
+      <div class="bd">${esc(e.text)}</div>${e.text&&e.text.length>180?`<div class="more" data-k="${k}">${isOpen?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+    if(e.kind==='send') return `<div class="ev send ${isOpen?'open':''}" style="--c:${c}"><div class="hd"><span class="k">→ envia</span> <span class="to">${esc(e.to)}</span><span class="t">${ago(e.ts)} atrás</span></div>
+      ${e.summary?`<div class="sum">${esc(e.summary)}</div>`:''}${e.text?`<div class="bd">${esc(e.text)}</div><div class="more" data-k="${k}">${isOpen?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+    return `<div class="ev recv ${isOpen?'open':''}" style="--c:${colorFor(e.from)}"><div class="hd"><span class="k">← recebe</span> <span class="to" style="color:${colorFor(e.from)}">${esc(e.from)}</span><span class="t">${ago(e.ts)} atrás</span></div>
+      ${e.summary?`<div class="sum">${esc(e.summary)}</div>`:''}${e.text?`<div class="bd">${esc(e.text)}</div><div class="more" data-k="${k}">${isOpen?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+  }).join('')||'<div class="empty">sem atividade no transcript</div>';
+}
+
+document.getElementById('feed').addEventListener('click',e=>{const o=e.target.closest('.openfull');if(o){openChat(o.dataset.agent);return;}const m=e.target.closest('.more');if(!m)return;const k=m.dataset.k;openMsgs.has(k)?openMsgs.delete(k):openMsgs.add(k);if(last)render(last);});
 document.getElementById('filters').addEventListener('click',e=>{const f=e.target.closest('.f');if(!f)return;filterFrom=filterFrom===f.dataset.f?null:f.dataset.f;if(last)render(last);});
+document.getElementById('convTabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;convTab=t.dataset.tab;filterFrom=null;if(last)render(last);});
+
+// ---- full per-agent chat overlay (read-only, imita o chat) ----
+let chatName=null, chatEvents=[], chatOpen=new Set();
+async function openChat(name){
+  chatName=name; chatOpen=new Set(); chatSig='';
+  document.getElementById('chatTitle').textContent=name;
+  const av=document.getElementById('chatAv'); av.textContent=initials(name); av.style.background=colorFor(name);
+  document.getElementById('chatBody').innerHTML='<div class="empty">carregando…</div>';
+  document.getElementById('chatOv').hidden=false;
+  await loadChat();
+  const body=document.getElementById('chatBody'); body.scrollTop=body.scrollHeight; // abre na msg mais recente
+}
+let chatSig='';
+async function loadChat(){
+  const name=chatName; if(!name)return;
+  let ev=[];
+  try{const r=await fetch(API_BASE+'/api/agent/'+encodeURIComponent(name)+'/full',{cache:'no-store'});if(r.ok)ev=(await r.json()).events||[];}catch{}
+  if(chatName!==name)return;
+  const sig=name+'|'+ev.length+'|'+(ev.length?ev[ev.length-1].ts:'');
+  if(sig===chatSig)return; // nada novo → não re-renderiza (preserva scroll/expandidos)
+  chatSig=sig; chatEvents=ev; renderChat();
+}
+function renderChat(){
+  const body=document.getElementById('chatBody');
+  const bubble=(e,k,op,side,lbl,leadHtml)=>{
+    const html=(leadHtml||'')+renderRich(e.text);
+    return `<div class="crow ${side}" data-k="${k}">${lbl?`<div class="lbl">${lbl}</div>`:''}
+      <div class="bub ${op?'open':'clamp'}">${html}</div><div class="more">${op?'▲ menos':'▼ mais'}</div></div>`;
+  };
+  body.innerHTML=chatEvents.map((e,i)=>{
+    const k=i+'|'+e.ts, op=chatOpen.has(k), t=`<span class="t">${ago(e.ts)} atrás</span>`;
+    if(e.kind==='think')
+      return `<div class="crow think me" data-k="${k}"><div class="lbl">💭 pensamento ${t}</div>
+        <div class="bub ${op?'open':'clamp'}">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div></div>`;
+    if(e.kind==='tool')
+      return `<div class="crow tool me ${op?'open':''}" data-k="${k}"><div class="tl"><span class="tn">🔧 ${esc(e.name)}</span><span class="tc">${esc(e.brief||'')}</span></div>${e.result?`<div class="res">${esc(e.result)}</div>`:''}</div>`;
+    if(e.kind==='say') return bubble(e,k,op,'me',t,'');
+    if(e.kind==='send') return bubble(e,k,op,'me',`→ ${esc(e.to)} ${t}`,e.summary?`<strong>${esc(e.summary)}</strong>${e.text?'<br>':''}`:'');
+    if(e.kind==='recv') return bubble(e,k,op,'them',`${esc(e.from)} ${t}`,e.summary?`<strong>${esc(e.summary)}</strong>${e.text?'<br>':''}`:'');
+    return bubble(e,k,op,'them',`prompt ${t}`,'');
+  }).join('')||'<div class="empty">sem atividade no transcript</div>';
+  // truncate by real height: keep "mais/menos" only on bubbles that actually overflow
+  body.querySelectorAll('.crow[data-k]').forEach(row=>{
+    if(chatOpen.has(row.dataset.k))return; // aberto → mantém "menos"
+    const bub=row.querySelector('.bub'); const more=row.querySelector('.more');
+    if(bub&&more&&bub.scrollHeight<=bub.clientHeight+4){bub.classList.remove('clamp');more.remove();}
+  });
+}
+function closeChat(){chatName=null;document.getElementById('chatOv').hidden=true;}
+document.getElementById('roster').addEventListener('click',e=>{const a=e.target.closest('.agent[data-agent]');if(!a)return;openChat(a.dataset.agent);});
+document.getElementById('chatClose').addEventListener('click',closeChat);
+document.getElementById('chatOv').addEventListener('click',e=>{if(e.target.id==='chatOv')closeChat();});
+document.getElementById('chatBody').addEventListener('click',e=>{const trig=e.target.closest('.more')||e.target.closest('.crow.tool');if(!trig)return;const row=trig.closest('.crow[data-k]');if(!row)return;const k=row.dataset.k;chatOpen.has(k)?chatOpen.delete(k):chatOpen.add(k);renderChat();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('chatOv').hidden)closeChat();});
 document.getElementById('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...document.querySelectorAll('#seg button')].forEach(x=>x.classList.remove('on'));b.classList.add('on');REFRESH=+b.dataset.s;left=REFRESH;});
 document.getElementById('boardSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;boardMode=b.dataset.v;localStorage.setItem('boardMode',boardMode);[...document.querySelectorAll('#boardSeg button')].forEach(x=>x.classList.toggle('on',x.dataset.v===boardMode));if(last)render(last);});
 document.getElementById('theme').addEventListener('click',()=>{theme=theme==='light'?'dark':'light';localStorage.setItem('claude-dash-theme',theme);applyTheme();});
@@ -395,6 +599,13 @@ async function refresh(){
     if(API_BASE===null){API_BASE=await findBase();if(API_BASE===null)throw 0;}
     const r=await fetch(API_BASE+'/api/state',{cache:'no-store'});if(!r.ok)throw 0;
     last=await r.json();render(last);
+    if(chatName){ // chat aberto → tail vivo, segue o fim se já estava no fim
+      const body=document.getElementById('chatBody');
+      const atBottom=body.scrollHeight-body.scrollTop-body.clientHeight<60;
+      const prev=chatEvents.length;
+      await loadChat();
+      if(chatEvents.length!==prev&&atBottom)body.scrollTop=body.scrollHeight;
+    }
   }catch{API_BASE=null;document.getElementById('liveTxt').textContent='servidor offline — rode launch.sh';}
 }
 refresh();
