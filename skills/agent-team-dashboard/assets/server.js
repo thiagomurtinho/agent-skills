@@ -48,6 +48,10 @@ function walkJsonl(dir, out = []) {
   return out;
 }
 
+// Briefing identity: "Você é `name` no time `team`" / "You are `name` on team `team`".
+// Accepts no time | in/on/of (the) team — the lead emits "on team".
+const IDENTITY_RE = /(?:Você é|You are)\s*[`'"]?([a-z][a-z0-9-]{1,30})[`'"]?\s*(?:no time|(?:in|on|of)(?: the)? team)\s*[`'"]?([a-z0-9-]{1,40})[`'"]?/i;
+
 // Current team's member names (for scoping the orchestrator's recipients).
 function memberNames() {
   const cfg = readJson(CONFIG, { members: [] });
@@ -72,7 +76,7 @@ function seedFromTranscripts() {
     // briefing → sender name + which team this transcript belongs to
     let from = '', fileTeam = '';
     for (const l of lines.slice(0, 6)) {
-      const m = l.match(/(?:Você é|You are)\s*[`'"]?([a-z][a-z0-9-]{1,30})[`'"]?\s*(?:no time|in (?:the )?team)\s*[`'"]?([a-z0-9-]{1,40})[`'"]?/i);
+      const m = l.match(IDENTITY_RE);
       if (m) { from = m[1]; fileTeam = m[2]; break; }
     }
     // a briefing that names another team → not ours, skip the whole file
@@ -223,19 +227,20 @@ function agents() {
 let _agentMap = null, _agentMapAt = 0;
 function agentFiles() {
   if (_agentMap && Date.now() - _agentMapAt < 15000) return _agentMap;
-  // Pass 1: read each transcript's briefing identity; build this team's member set
-  // from the transcripts themselves (config may be gone after the team is cleaned up).
+  // Pass 1: read each transcript's briefing identity. Member set comes from the live
+  // config.json (works even for in-process teammates that have no own transcript) plus
+  // any briefings found (config may be gone after the team is cleaned up).
   const parsed = [];
-  const memberNames = new Set();
+  const members = memberNames();
   for (const f of walkJsonl(PROJECT_DIR)) {
     let lines; try { lines = readFileSync(f, 'utf8').split('\n').filter(Boolean); } catch { continue; }
     let name = '', team = '';
     for (const l of lines.slice(0, 8)) {
-      const m = l.match(/(?:Você é|You are)\s*[`'"]?([a-z][a-z0-9-]{1,30})[`'"]?\s*(?:no time|in (?:the )?team)\s*[`'"]?([a-z0-9-]+)[`'"]?/i);
+      const m = l.match(IDENTITY_RE);
       if (m) { name = m[1]; team = m[2]; break; }
     }
     parsed.push({ f, lines, name, team });
-    if (name && team === TEAM) memberNames.add(name);
+    if (name && team === TEAM) members.add(name);
   }
   // Pass 2: members → their files; briefing-less roots that message this team's
   // members are the orchestrator → team-lead.
@@ -246,7 +251,7 @@ function agentFiles() {
     let lead = false;
     for (const l of lines) {
       if (!l.includes('"SendMessage"')) continue;
-      try { const o = JSON.parse(l); const c = o.message?.content; if (Array.isArray(c)) for (const b of c) if (b.type === 'tool_use' && b.name === 'SendMessage' && memberNames.has(b.input?.to)) { lead = true; break; } } catch {}
+      try { const o = JSON.parse(l); const c = o.message?.content; if (Array.isArray(c)) for (const b of c) if (b.type === 'tool_use' && b.name === 'SendMessage' && members.has(b.input?.to)) { lead = true; break; } } catch {}
       if (lead) break;
     }
     if (lead) add('team-lead', f);
@@ -286,11 +291,26 @@ function fileEvents(f) {
   return ev;
 }
 
+// In-process teammates have no own transcript; their conversation lives in the lead's
+// transcript as send (lead→member) / recv (teammate-message from member). Rebuild the
+// member's side by flipping perspective so their card isn't empty.
+function deriveMemberEvents(name, full) {
+  const lead = agentFiles()['team-lead'] || [];
+  const ev = [];
+  for (const f of lead) {
+    for (const e of (full ? fileEventsFull(f) : fileEvents(f))) {
+      if (e.kind === 'send' && e.to === name) ev.push({ ...e, kind: 'recv', from: 'team-lead' });
+      else if (e.kind === 'recv' && e.from === name) ev.push({ ...e, kind: 'send', to: 'team-lead' });
+    }
+  }
+  return ev;
+}
+
 function agentStream(name) {
   const files = agentFiles()[name];
-  if (!files) return [];
   let ev = [];
-  for (const f of files) ev = ev.concat(fileEvents(f));
+  if (files && files.length) for (const f of files) ev = ev.concat(fileEvents(f));
+  else if (name !== 'team-lead') ev = deriveMemberEvents(name, false);
   if (name === 'team-lead') { const since = teamCreatedAt(); if (since) ev = ev.filter((e) => e.ts && e.ts >= since); }
   ev.sort((a, b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
   return ev.slice(-50);
@@ -360,9 +380,9 @@ function fileEventsFull(f) {
 
 function fullStream(name) {
   const files = agentFiles()[name];
-  if (!files) return [];
   let ev = [];
-  for (const f of files) ev = ev.concat(fileEventsFull(f));
+  if (files && files.length) for (const f of files) ev = ev.concat(fileEventsFull(f));
+  else if (name !== 'team-lead') ev = deriveMemberEvents(name, true);
   if (name === 'team-lead') { const since = teamCreatedAt(); if (since) ev = ev.filter((e) => e.ts && e.ts >= since); }
   ev.sort((a, b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
   return ev.slice(-160);
