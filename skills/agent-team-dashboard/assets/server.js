@@ -45,21 +45,35 @@ function walkJsonl(dir, out = []) {
   return out;
 }
 
-// One-time backfill: mine SendMessage events from this team's transcripts so the feed
-// shows full history even though inboxes only keep unread msgs. Sender identity comes
-// from the agent's briefing ("Você é `name`" / "You are `name`"); the orchestrator root
-// (multi-recipient, no self-briefing) is the team-lead.
+// Current team's member names (for scoping the orchestrator's recipients).
+function memberNames() {
+  const cfg = readJson(CONFIG, { members: [] });
+  return new Set((cfg.members || []).map((m) => m.name));
+}
+
+// One-time backfill: mine SendMessage events from THIS team's transcripts so the feed
+// shows full history even though inboxes only keep unread msgs. Scoped to the team:
+//  - member transcripts self-identify via briefing "Você é `name` no time `team`";
+//    a transcript whose briefing names a DIFFERENT team is skipped (the repo holds
+//    transcripts from every team that ever ran here).
+//  - the orchestrator root has no briefing → from=team-lead, but we keep only sends to
+//    a current member and after the team was created (evita contaminação cross-team).
 function seedFromTranscripts() {
   if (!existsSync(PROJECT_DIR)) return [];
+  const members = memberNames();
+  const sinceMs = (() => { const iso = teamCreatedAt(); return iso ? Date.parse(iso) : 0; })();
+  const afterStart = (ts) => !sinceMs || (ts && Date.parse(ts) >= sinceMs);
   const seeded = [];
   for (const f of walkJsonl(PROJECT_DIR)) {
     let lines; try { lines = readFileSync(f, 'utf8').split('\n').filter(Boolean); } catch { continue; }
-    // identity from first few user messages
-    let from = '';
+    // briefing → sender name + which team this transcript belongs to
+    let from = '', fileTeam = '';
     for (const l of lines.slice(0, 6)) {
-      const m = l.match(/(?:Você é|You are)\s*[`'"]?([a-z][a-z0-9-]{1,30})[`'"]?/i);
-      if (m) { from = m[1]; break; }
+      const m = l.match(/(?:Você é|You are)\s*[`'"]?([a-z][a-z0-9-]{1,30})[`'"]?\s*(?:no time|in (?:the )?team)\s*[`'"]?([a-z0-9-]{1,40})[`'"]?/i);
+      if (m) { from = m[1]; fileTeam = m[2]; break; }
     }
+    // a briefing that names another team → not ours, skip the whole file
+    if (fileTeam && fileTeam !== TEAM) continue;
     const sends = [];
     for (const l of lines) {
       let o; try { o = JSON.parse(l); } catch { continue; }
@@ -73,10 +87,15 @@ function seedFromTranscripts() {
       }
     }
     if (!sends.length) continue;
-    // no briefing identity + sends to ≥2 distinct recipients → orchestrator (team-lead)
-    if (!from) { const tos = new Set(sends.map((s) => s.to)); from = tos.size >= 2 ? 'team-lead' : ''; }
-    if (!from) continue;
-    for (const s of sends) seeded.push({ from, to: s.to, text: s.text, summary: s.summary, ts: s.ts, color: '' });
+    if (from) {
+      // member transcript of this team → keep all its sends
+      for (const s of sends) seeded.push({ from, to: s.to, text: s.text, summary: s.summary, ts: s.ts, color: '' });
+    } else {
+      // no briefing → orchestrator root; keep only sends to a current member, after start
+      for (const s of sends) {
+        if (members.has(s.to) && afterStart(s.ts)) seeded.push({ from: 'team-lead', to: s.to, text: s.text, summary: s.summary, ts: s.ts, color: '' });
+      }
+    }
   }
   return seeded;
 }
@@ -89,13 +108,14 @@ function mergeMsgs(...lists) {
     .sort((a, b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
 }
 
-// Seed once at boot (merged into whatever the store already had).
+// Rebuild the store from clean seed at boot — overwrite (not merge) so any cross-team
+// contamination from older runs is wiped; transcripts re-recover this team's history.
+// messages() then accumulates live inbox on top during the run.
 try {
-  const seeded = seedFromTranscripts();
+  const seeded = mergeMsgs(seedFromTranscripts());
   if (seeded.length) {
-    const merged = mergeMsgs(readJson(FEED_STORE, []), seeded);
-    writeFileSync(FEED_STORE, JSON.stringify(merged));
-    console.log(`seeded ${seeded.length} msgs from transcripts → ${merged.length} total`);
+    writeFileSync(FEED_STORE, JSON.stringify(seeded));
+    console.log(`seeded ${seeded.length} msgs from ${TEAM} transcripts`);
   }
 } catch (e) { console.error('seed failed:', e.message); }
 
@@ -144,28 +164,66 @@ function messages() {
   return merged;
 }
 
+const gitSafe = (cmd) => { try { return execSync('git ' + cmd, { cwd: REPO }).toString().trim(); } catch { return ''; } };
+
+// ISO of when the team was created (config.createdAt, else earliest member joinedAt).
+function teamCreatedAt() {
+  const cfg = readJson(CONFIG, {});
+  let ms = cfg.createdAt || 0;
+  if (!ms) ms = (cfg.members || []).reduce((a, m) => (m.joinedAt && m.joinedAt < a ? m.joinedAt : a), Infinity);
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : '';
+}
+
+// Default base branch (origin/main → "origin/main"), fallback to local main/master.
+function baseBranch() {
+  const sym = gitSafe('symbolic-ref refs/remotes/origin/HEAD'); // refs/remotes/origin/main
+  if (sym) return sym.replace('refs/remotes/', '');
+  for (const c of ['main', 'master']) if (gitSafe('rev-parse --verify ' + c)) return c;
+  return '';
+}
+
+// Commits scoped to the team's work: prefer commits on the current branch since the
+// team was created; degrade to branch-diff, then team time-window, then last 20.
 function commits() {
-  try {
-    const raw = execSync('git log --pretty=format:%h%x1f%s%x1f%cI -20', { cwd: REPO }).toString();
-    return raw.split('\n').filter(Boolean).map((l) => { const [hash, subject, date] = l.split('\x1f'); return { hash, subject, date }; });
-  } catch { return []; }
+  const fmt = '--pretty=format:%h%x1f%s%x1f%cI';
+  const since = teamCreatedAt();
+  const base = baseBranch();
+  const head = gitSafe('rev-parse --abbrev-ref HEAD');
+  const onBranch = base && head && head !== 'HEAD' && head !== base.replace(/^origin\//, '');
+  const tries = [];
+  if (onBranch && since) tries.push(['branch', `log ${fmt} ${base}..HEAD --since="${since}"`]);
+  if (onBranch) tries.push(['branch', `log ${fmt} ${base}..HEAD`]);
+  if (since) tries.push(['team', `log ${fmt} --since="${since}"`]);
+  tries.push(['todos', `log ${fmt} -20`]);
+  for (const [scope, cmd] of tries) {
+    const raw = gitSafe(cmd);
+    if (!raw) continue;
+    const list = raw.split('\n').filter(Boolean).map((l) => { const [hash, subject, date] = l.split('\x1f'); return { hash, subject, date }; });
+    if (list.length) return { list, scope };
+  }
+  return { list: [], scope: 'todos' };
 }
 
 function agents() {
   const cfg = readJson(CONFIG, { members: [] });
-  return (cfg.members || []).map((m) => ({ name: m.name, type: m.agentType || '', id: m.agentId || '' }));
+  return (cfg.members || []).map((m) => ({
+    name: m.name, type: m.agentType || '', id: m.agentId || '',
+    model: m.model || '', joinedAt: m.joinedAt || 0,
+  }));
 }
 
 function state() {
   const t = tasks();
+  const cm = commits();
   return {
     team: TEAM,
     repo: REPO,
-    branch: (() => { try { return execSync('git rev-parse --abbrev-ref HEAD', { cwd: REPO }).toString().trim(); } catch { return ''; } })(),
+    branch: gitSafe('rev-parse --abbrev-ref HEAD'),
     generatedAt: new Date().toISOString(),
     tasks: t,
     messages: messages(),
-    commits: commits(),
+    commits: cm.list,
+    commitScope: cm.scope,
     agents: agents(),
   };
 }

@@ -85,6 +85,9 @@
     display:flex;align-items:center;justify-content:center;cursor:help;text-transform:none;letter-spacing:0;
     flex:0 0 auto;transition:.15s}
   .h .info:hover{color:var(--accent);border-color:var(--accent)}
+  .h .scope{margin-left:auto;font-size:10.5px;letter-spacing:0;text-transform:none;color:var(--accent);
+    border:1px solid var(--border-2);border-radius:99px;padding:1px 8px;cursor:help;font-family:var(--mono);white-space:nowrap}
+  .h .scope:empty{display:none}
 
   .roster{display:flex;flex-direction:column;gap:10px;padding:16px}
   .agent{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;
@@ -93,7 +96,10 @@
   .av{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
     font-weight:700;font-size:13px;color:#1C1917;flex:0 0 auto}
   .agent>div:nth-child(2){min-width:0;flex:1}
-  .agent .nm{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .agent .nm{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    display:flex;align-items:baseline;gap:6px}
+  .agent .nm .mdl{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent);
+    background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:0 5px;flex:0 0 auto;cursor:help}
   .agent .st{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .agent .meta{flex:0 0 auto;text-align:right}
   .badge{white-space:nowrap}
@@ -203,7 +209,7 @@
   <div class="grid">
     <div class="col">
       <section class="hero glass">
-        <div class="ring">
+        <div class="ring" tabindex="0" title="% de tarefas marcadas como concluídas pelos próprios agentes (auto-reporte via TaskUpdate). NÃO significa verificado, testado ou commitado — o harness não expõe esse gate. Mede declaração, não verdade.">
           <svg width="128" height="128" viewBox="0 0 128 128">
             <circle class="ringbg" cx="64" cy="64" r="56" fill="none" stroke-width="11"/>
             <circle id="ringFill" cx="64" cy="64" r="56" fill="none" stroke="url(#g)" stroke-width="11"
@@ -223,7 +229,9 @@
       </section>
 
       <section class="glass sec-commits">
-        <div class="h" style="padding:14px 16px 0">commits <span class="count" id="cmCount">0</span></div>
+        <div class="h" style="padding:14px 16px 0">commits <span class="count" id="cmCount">0</span>
+          <span class="scope" id="cmScope" tabindex="0"></span>
+        </div>
         <div class="commits" id="commits"></div>
       </section>
     </div>
@@ -257,6 +265,9 @@ const initials=n=>{const p=n.split('-');return p.length>2?(p[0][0]+p[2]).toUpper
 const ago=iso=>{if(!iso)return'';const s=(Date.now()-new Date(iso))/1000;if(s<60)return Math.floor(s)+'s';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';return Math.floor(s/86400)+'d';};
 const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const stripF=s=>s.replace(/^F\d[^—]*—\s*/,'');
+// claude-opus-4-8[1m] -> "opus 4.8" · claude-haiku-4-5-20251001 -> "haiku 4.5"
+const prettyModel=m=>{if(!m)return'';let s=m.replace(/^claude-/,'').replace(/\[.*?\]/,'').replace(/-\d{8}$/,'');
+  return s.replace(/^(opus|sonnet|haiku|fable)-(\d+)-(\d+).*$/,'$1 $2.$3').replace(/^(opus|sonnet|haiku|fable)-(\d+).*$/,'$1 $2');};
 const CIRC=2*Math.PI*56;
 const STATUS_LANES=[{k:'blocked',t:'bloqueada',c:'var(--block)'},{k:'pending',t:'pendente',c:'var(--pend)'},{k:'in_progress',t:'em progresso',c:'var(--run)'},{k:'completed',t:'concluída',c:'var(--ok)'}];
 
@@ -280,7 +291,8 @@ function taskCard(t,byId){
 }
 function renderBoard(s,phs,byId){
   const el=document.getElementById('board');
-  if(boardMode==='kanban'){
+  const hasPhases=Object.keys(phs).some(p=>p&&p!=='?');
+  if(boardMode==='kanban'||!hasPhases){ // sem fases reais → kanban (grade só faria "Fase ?")
     el.innerHTML=`<div class="kanban">`+STATUS_LANES.map(L=>{
       const items=s.tasks.filter(t=>effStatus(t,byId)===L.k);
       const compact=L.k==='completed'?' lane-compact':'';
@@ -307,10 +319,15 @@ function render(s){
   document.getElementById('pctSub').textContent=done+'/'+tot;
 
   const phs={}; s.tasks.forEach(t=>{(phs[t.phase]=phs[t.phase]||[]).push(t);});
-  document.getElementById('phases').innerHTML=Object.keys(phs).sort().map(p=>{
+  const hasPhases=Object.keys(phs).some(p=>p&&p!=='?');
+  const phasesEl=document.getElementById('phases');
+  phasesEl.style.display=hasPhases?'':'none';
+  phasesEl.innerHTML=!hasPhases?'':Object.keys(phs).sort().map(p=>{
     const a=phs[p],d=a.filter(t=>t.status==='completed').length;
     return `<div class="ph"><div class="lbl">Fase ${p}</div><div class="track"><div class="fill" style="width:${a.length?d/a.length*100:0}%"></div></div><div class="num">${d}/${a.length}</div></div>`;
   }).join('');
+  // sem convenção de fase (F\d) → grade vira "Fase ?"; esconde o toggle e força kanban
+  document.getElementById('boardSeg').style.display=hasPhases?'':'none';
 
   const owners={}; s.tasks.forEach(t=>{if(t.owner)(owners[t.owner]=owners[t.owner]||[]).push(t);});
   const ag=s.agents.filter(a=>a.name!==s.team);
@@ -320,8 +337,9 @@ function render(s){
     const working=mine.find(t=>t.status==='in_progress'), allDone=mine.length&&dn===mine.length;
     const badge=working?['b-work','trabalhando']:allDone?['b-done','concluído']:['b-idle','ocioso'];
     const st=working?('▶ #'+working.id+' '+stripF(working.subject).slice(0,30)):(mine.length?dn+' de '+mine.length+' tarefas':'sem tarefas');
+    const mdl=prettyModel(a.model);
     return `<div class="agent"><div class="av" style="background:${colorFor(a.name)}">${initials(a.name)}</div>
-      <div><div class="nm">${a.name}</div><div class="st">${esc(st)}</div></div>
+      <div><div class="nm">${a.name}${mdl?`<span class="mdl" title="${esc(a.model)}">${mdl}</span>`:''}</div><div class="st">${esc(st)}</div></div>
       <div class="meta"><span class="badge ${badge[0]}">${badge[1]}</span></div></div>`;
   }).join('')||'<div class="empty">sem agentes</div>';
 
@@ -329,6 +347,10 @@ function render(s){
   renderBoard(s,phs,byId);
 
   document.getElementById('cmCount').textContent=s.commits.length;
+  const SCOPE_TIP={branch:'Só os commits desta branch desde que o team subiu (base..HEAD desde createdAt).',team:'Commits desde o team subir (a branch coincide com a base; filtro por tempo).',todos:'Sem base/janela detectada — últimos 20 commits do HEAD.'};
+  const cmScopeEl=document.getElementById('cmScope');
+  cmScopeEl.textContent=s.commitScope||'';
+  cmScopeEl.title=SCOPE_TIP[s.commitScope]||'';
   document.getElementById('commits').innerHTML=s.commits.map(c=>
     `<div class="commit"><span class="hash">${c.hash}</span><span class="sub">${esc(c.subject)}</span><span class="cd">${ago(c.date)}</span></div>`
   ).join('')||'<div class="empty">sem commits</div>';
