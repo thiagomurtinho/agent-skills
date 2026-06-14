@@ -1,8 +1,8 @@
 # xml-like prompt cardápio — shaping a member's `<task>`
 
 Load when writing a recruited member's prompt. A member doesn't inherit your conversation, so its
-`<task>` must be self-contained. Below: the tag menu (which tag for what), the base skeleton, the
-golden rules, and one worked example per model tier. This is only about the prompt's shape.
+`<task>` must be self-contained. Use this to make teammate briefs scannable, grounded, and executable
+without inherited conversation context.
 
 ## Tag menu — reach for a tag only when it earns its place
 
@@ -45,6 +45,8 @@ the primary instruction in its own tag; refer to a tag by name when you mention 
 
 ## Worked example — `sonnet-executor` (Sonnet · medium)
 
+Spawn brief: `subagent_type: "sonnet-executor"`, `model: "sonnet"`, `effort: "medium"`.
+
 ```xml
 <task>
   <responsibility>Implement the REST handlers listTodos, createTodo, completeTodo.</responsibility>
@@ -58,6 +60,8 @@ the primary instruction in its own tag; refer to a tag by name when you mention 
 
 ## Worked example — `sonnet-executor-high` (Sonnet · high)
 
+Spawn brief: `subagent_type: "sonnet-executor-high"`, `model: "sonnet"`, `effort: "high"`.
+
 ```xml
 <task>
   <responsibility>Extract the shared token-validation logic into one module.</responsibility>
@@ -70,6 +74,8 @@ the primary instruction in its own tag; refer to a tag by name when you mention 
 ```
 
 ## Worked example — `haiku-runner` (Haiku)
+
+Spawn brief: `subagent_type: "haiku-runner"`, `model: "haiku"`.
 
 ```xml
 <task>

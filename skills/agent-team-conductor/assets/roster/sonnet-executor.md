@@ -3,6 +3,7 @@ name: sonnet-executor
 description: Default executor (Sonnet, medium effort). Implements one well-specified, localized task — a function, a test file, technical docs — from its xml <task> brief. The common recruit.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+effort: medium
 ---
 
 <agent>
