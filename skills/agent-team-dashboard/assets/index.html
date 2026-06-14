@@ -233,8 +233,8 @@
   .crow.me .bub{background:rgba(193,95,60,.14);border:1px solid rgba(193,95,60,.28);border-bottom-right-radius:4px}
   body.light .crow.me .bub{background:rgba(193,95,60,.10)}
   .crow.them .bub{background:var(--panel-2);border:1px solid var(--border);border-bottom-left-radius:4px}
-  .bub.clamp{max-height:300px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 82%,transparent)}
-  .bub.clamp.open{max-height:none;-webkit-mask-image:none}
+  .bub.clamp{max-height:200px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 78%,transparent)}
+  .bub.open{max-height:none;-webkit-mask-image:none}
   /* rich markdown inside bubbles */
   .bub p{margin:0 0 8px}.bub p:last-child{margin:0}
   .bub h1,.bub h2,.bub h3{margin:6px 0 4px;font-size:14px;font-weight:700}
@@ -550,18 +550,15 @@ async function loadChat(){
 function renderChat(){
   const body=document.getElementById('chatBody');
   const bubble=(e,k,op,side,lbl,leadHtml)=>{
-    const long=(e.text||'').length>600;
     const html=(leadHtml||'')+renderRich(e.text);
     return `<div class="crow ${side}" data-k="${k}">${lbl?`<div class="lbl">${lbl}</div>`:''}
-      <div class="bub ${long&&!op?'clamp':''} ${op?'open':''}">${html}</div>${long?`<div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
+      <div class="bub ${op?'open':'clamp'}">${html}</div><div class="more">${op?'▲ menos':'▼ mais'}</div></div>`;
   };
   body.innerHTML=chatEvents.map((e,i)=>{
     const k=i+'|'+e.ts, op=chatOpen.has(k), t=`<span class="t">${ago(e.ts)} atrás</span>`;
-    if(e.kind==='think'){
-      const long=(e.text||'').length>400;
+    if(e.kind==='think')
       return `<div class="crow think me" data-k="${k}"><div class="lbl">💭 pensamento ${t}</div>
-        <div class="bub ${long&&!op?'clamp':''} ${op?'open':''}">${esc(e.text)}</div>${long?`<div class="more">${op?'▲ menos':'▼ mais'}</div>`:''}</div>`;
-    }
+        <div class="bub ${op?'open':'clamp'}">${esc(e.text)}</div><div class="more">${op?'▲ menos':'▼ mais'}</div></div>`;
     if(e.kind==='tool')
       return `<div class="crow tool me ${op?'open':''}" data-k="${k}"><div class="tl"><span class="tn">🔧 ${esc(e.name)}</span><span class="tc">${esc(e.brief||'')}</span></div>${e.result?`<div class="res">${esc(e.result)}</div>`:''}</div>`;
     if(e.kind==='say') return bubble(e,k,op,'me',t,'');
@@ -569,6 +566,12 @@ function renderChat(){
     if(e.kind==='recv') return bubble(e,k,op,'them',`${esc(e.from)} ${t}`,e.summary?`<strong>${esc(e.summary)}</strong>${e.text?'<br>':''}`:'');
     return bubble(e,k,op,'them',`prompt ${t}`,'');
   }).join('')||'<div class="empty">sem atividade no transcript</div>';
+  // truncate by real height: keep "mais/menos" only on bubbles that actually overflow
+  body.querySelectorAll('.crow[data-k]').forEach(row=>{
+    if(chatOpen.has(row.dataset.k))return; // aberto → mantém "menos"
+    const bub=row.querySelector('.bub'); const more=row.querySelector('.more');
+    if(bub&&more&&bub.scrollHeight<=bub.clientHeight+4){bub.classList.remove('clamp');more.remove();}
+  });
 }
 function closeChat(){chatName=null;document.getElementById('chatOv').hidden=true;}
 document.getElementById('roster').addEventListener('click',e=>{const a=e.target.closest('.agent[data-agent]');if(!a)return;openChat(a.dataset.agent);});
