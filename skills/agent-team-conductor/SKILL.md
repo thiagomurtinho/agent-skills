@@ -1,11 +1,10 @@
 ---
 name: agent-team-conductor
 description: >
-  Use when recruiting/spawning an agent-team teammate: pick its model up front by the kind of work
-  (Haiku / Sonnet / Sonnet-high) and write its prompt in the xml-like task form, always with a
+  Use when preparing an agent-team teammate: choose the model that fits the workload
+  (Haiku / Sonnet / Sonnet-high) and write a clear xml-like task prompt with a
   minimal focused handoff. Triggers: spawning a teammate, Agent(team_name=…), "which model for this
-  member", "how to structure the teammate prompt". Covers only the model choice and the prompt shape —
-  running the team itself follows the platform defaults.
+  member", "how to structure the teammate prompt".
 license: Proprietary
 metadata:
   author: thiago
@@ -16,9 +15,13 @@ metadata:
 
 # Agent Team Conductor
 
-When you recruit an agent-team member, decide two things — **which model it runs** and **how its
-prompt is shaped**. This skill covers exactly those, and nothing else — everything about running the
-team itself follows the platform defaults.
+When preparing an agent-team member, make two choices before spawning it:
+
+1. Pick the model that fits the workload.
+2. Shape the prompt as a self-contained xml-like `<task>` with a minimal focused `<handoff>`.
+
+The goal is a teammate brief that is cheap enough, strong enough, and clear enough to execute without
+inherited conversation context.
 
 <model-routing>
 Pick the member's model up front, by the kind of work. Rule: the stronger model where a mistake is
@@ -30,11 +33,16 @@ costly; the lower the effort, the more fully specified the task.
 | well-specified implementation (the common case) | Sonnet | `medium` | `sonnet-executor` |
 | delicate: cross-module integration, contract-touching refactor | Sonnet | `high` | `sonnet-executor-high` |
 
-Pick the lowest tier that fits; the default is `sonnet-executor`. Apply the choice by spawning with
-the matching `subagent_type` (defs in `assets/roster/`, which carry the model + tools) or by setting
-`Agent` `model` directly. Two notes that protect the choice:
+Pick the lowest tier that fits; the default is `sonnet-executor`. Apply the choice in the spawn
+instruction: name the matching `subagent_type`, name the intended model/effort, and confirm the
+created teammate actually matches. The defs in `assets/roster/` carry the role behavior, tools, and
+model/effort defaults where the runtime honors them.
+
+Two notes that protect the choice:
 
 - **Never set `CLAUDE_CODE_SUBAGENT_MODEL`** — it overrides every member's model and erases this choice.
+- A planned model is not enough: if the spawned teammate does not show the intended model, stop and
+  respawn or correct it before spending work tokens.
 - Effort is per model: `medium`/`high` for Sonnet; Haiku has none.
 
 Full routing detail → `references/model-routing.md`.

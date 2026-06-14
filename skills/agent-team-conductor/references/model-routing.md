@@ -1,7 +1,7 @@
 # Model routing — choosing a member's model
 
-Load when deciding which model a recruited team member should run. The one rule, then the roster and
-how to apply it.
+Use this when choosing the teammate model before spawning. Start from the workload, pick the lowest
+tier that can execute it reliably, then make the selected model visible in the spawn instruction.
 
 ## The rule
 
@@ -29,15 +29,23 @@ delicate, not by reflex.
 
 ## How to bind the model to the member
 
-- **By `subagent_type`** — spawn with `subagent_type: "sonnet-executor"` (etc.). The defs in
-  `assets/roster/*.md` carry both the **model** and the **tool set** (e.g. `haiku-runner` has no
-  Write/Edit), and their body is appended to the member's prompt.
-- **By `model` directly** — set `Agent` `model: "sonnet" | "haiku"` on the spawn call.
+Model routing is complete only when the created teammate actually runs the selected model.
+
+- Use `subagent_type` for the role definition: behavior, constraints, tool shape, and default
+  model/effort metadata from `assets/roster/*.md`.
+- Make the intended runtime model explicit in the spawn instruction, next to the role:
+  `subagent_type: "haiku-runner", model: "haiku"` or
+  `subagent_type: "sonnet-executor-high", model: "sonnet", effort: "high"`.
+- If the Agent surface exposes a `model` / `effort` field, set it there. If it only accepts natural
+  language, state the model and effort in the spawn request itself.
+- After spawn, check the created teammate. If it inherited the wrong model, stop and respawn/correct it
+  before it spends tokens on the task.
 
 ## Two notes that protect the choice
 
 - **Never set `CLAUDE_CODE_SUBAGENT_MODEL`.** It overrides the model of *every* member, ignoring each
   one's frontmatter / spawn model — flattening the whole roster to a single model and erasing the
   per-member choice this skill exists to make. Leave it unset (or `inherit`).
+- **Unset env does not prove routing worked.** The spawn result is the source of truth.
 - **Effort is per model.** `medium`/`high` apply to Sonnet; Haiku has no effort knob. An unsupported
   level falls back to the highest the model supports.

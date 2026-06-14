@@ -3,6 +3,7 @@ name: sonnet-executor-high
 description: Sonnet at high effort for delicate but Sonnet-tractable tasks — cross-module integration, contract-touching refactors, branch-heavy logic. Same tools as sonnet-executor; raise the effort, not the model.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+effort: high
 ---
 
 <agent>
