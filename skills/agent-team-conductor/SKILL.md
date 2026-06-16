@@ -2,7 +2,7 @@
 name: agent-team-conductor
 description: >
   Use when preparing an agent-team teammate: choose the model that fits the workload
-  (Haiku / Sonnet / Sonnet-high) and write a clear xml-like task prompt with a
+  (Haiku / Sonnet / Sonnet-high / Opus) and write a clear xml-like task prompt with a
   minimal focused handoff. Triggers: spawning a teammate, Agent(team_name=…), "which model for this
   member", "how to structure the teammate prompt".
 license: Proprietary
@@ -32,8 +32,11 @@ costly; the lower the effort, the more fully specified the task.
 | run a command & report (build / test / lint / migration / log) | Haiku | — | `haiku-runner` |
 | well-specified implementation (the common case) | Sonnet | `medium` | `sonnet-executor` |
 | delicate: cross-module integration, contract-touching refactor | Sonnet | `high` | `sonnet-executor-high` |
+| a whole RFC / complete front: wide scope + design judgment (GATED — see below) | Opus | `medium` | `opus-executor` |
 
-Pick the lowest tier that fits; the default is `sonnet-executor`. Apply the choice in the spawn
+Pick the lowest tier that fits; the default is `sonnet-executor`. **Opus is gated:** the `opus-executor`
+tier is recruited ONLY when the user explicitly asks, in chat, to run a front on Opus. It is never the
+default and never auto-selected — absent an explicit request the ceiling is `sonnet-executor-high`. Apply the choice in the spawn
 instruction: name the matching `subagent_type`, name the intended model/effort, and confirm the
 created teammate actually matches. The defs in `assets/roster/` carry the role behavior, tools, and
 model/effort defaults where the runtime honors them.
