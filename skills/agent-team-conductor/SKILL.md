@@ -23,6 +23,21 @@ When preparing an agent-team member, make two choices before spawning it:
 The goal is a teammate brief that is cheap enough, strong enough, and clear enough to execute without
 inherited conversation context.
 
+<mandatory-taskcreate>
+**MANDATORY — no exceptions.** Whenever work runs through an agent team, the work MUST be distributed as
+explicit task records via `TaskCreate` (one task per unit of work) and assigned with `TaskUpdate`
+(`owner` = teammate name; `status` pending -> in_progress -> completed). NEVER hand a teammate its work
+only inside the spawn `<task>` brief — that leaves `~/.claude/tasks/<team>/` empty, breaks the dashboard
+board (shows 0/0), and erases the audit trail.
+
+Order: `TeamCreate` -> `TaskCreate` for every work unit -> spawn teammates (`Agent` with `team_name`) ->
+`TaskUpdate owner=<teammate>` to assign -> teammates flip status as they progress. The spawn `<task>`
+brief still carries the self-contained context, but it POINTS AT the task it owns; it does not replace it.
+
+Verify before declaring the team running: `ls ~/.claude/tasks/<team>/*.json` must list one file per work
+unit. If empty, you skipped `TaskCreate` — stop and create them.
+</mandatory-taskcreate>
+
 <model-routing>
 Pick the member's model up front, by the kind of work. Rule: the stronger model where a mistake is
 costly; the lower the effort, the more fully specified the task.
