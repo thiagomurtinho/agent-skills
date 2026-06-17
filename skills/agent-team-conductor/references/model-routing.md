@@ -16,6 +16,7 @@ tier that can execute it reliably, then make the selected model visible in the s
 | `sonnet-executor` (default) | Sonnet | `medium` | well-specified implementation, tests, technical docs | Read, Write, Edit, Bash, Grep, Glob |
 | `sonnet-executor-high` | Sonnet | `high` | delicate but Sonnet-tractable: cross-module integration, contract-touching refactor, branch-heavy logic | Read, Write, Edit, Bash, Grep, Glob |
 | `haiku-runner` | Haiku | — (no effort knob) | run a command & report: build / test / lint / migration / log collection | Bash, Read, Grep — no Write/Edit |
+| `opus-executor` | Opus | `medium` | a whole RFC / complete front: wide scope + design judgment, costly mistake — **GATED, explicit user request only** | Read, Write, Edit, Bash, Grep, Glob |
 
 ## The ladder — pick the lowest tier that fits
 
@@ -23,9 +24,12 @@ tier that can execute it reliably, then make the selected model visible in the s
 2. **Well-specified implementation** (the common case) → `sonnet-executor` (Sonnet `medium`).
 3. **Delicate but still Sonnet-tractable** (integration, contract refactor) → `sonnet-executor-high`
    (Sonnet `high`) — raise the effort, not the model.
+4. **A whole RFC / complete front** (broad scope + design judgment) → `opus-executor` (Opus `medium`)
+   — **GATED**: only on an explicit user request in chat. Never the default, never auto-selected.
 
 Default is `sonnet-executor`. Moving up a tier is a deliberate choice, made because the task is
-delicate, not by reflex.
+delicate, not by reflex. The Opus tier is special: absent an explicit chat request for Opus, the
+ceiling is `sonnet-executor-high` — do not reach for Opus on your own, even for a full RFC.
 
 ## How to bind the model to the member
 

@@ -2,7 +2,7 @@
 name: agent-team-conductor
 description: >
   Use when preparing an agent-team teammate: choose the model that fits the workload
-  (Haiku / Sonnet / Sonnet-high) and write a clear xml-like task prompt with a
+  (Haiku / Sonnet / Sonnet-high / Opus) and write a clear xml-like task prompt with a
   minimal focused handoff. Triggers: spawning a teammate, Agent(team_name=…), "which model for this
   member", "how to structure the teammate prompt".
 license: Proprietary
@@ -23,6 +23,21 @@ When preparing an agent-team member, make two choices before spawning it:
 The goal is a teammate brief that is cheap enough, strong enough, and clear enough to execute without
 inherited conversation context.
 
+<mandatory-taskcreate>
+**MANDATORY — no exceptions.** Whenever work runs through an agent team, the work MUST be distributed as
+explicit task records via `TaskCreate` (one task per unit of work) and assigned with `TaskUpdate`
+(`owner` = teammate name; `status` pending -> in_progress -> completed). NEVER hand a teammate its work
+only inside the spawn `<task>` brief — that leaves `~/.claude/tasks/<team>/` empty, breaks the dashboard
+board (shows 0/0), and erases the audit trail.
+
+Order: `TeamCreate` -> `TaskCreate` for every work unit -> spawn teammates (`Agent` with `team_name`) ->
+`TaskUpdate owner=<teammate>` to assign -> teammates flip status as they progress. The spawn `<task>`
+brief still carries the self-contained context, but it POINTS AT the task it owns; it does not replace it.
+
+Verify before declaring the team running: `ls ~/.claude/tasks/<team>/*.json` must list one file per work
+unit. If empty, you skipped `TaskCreate` — stop and create them.
+</mandatory-taskcreate>
+
 <model-routing>
 Pick the member's model up front, by the kind of work. Rule: the stronger model where a mistake is
 costly; the lower the effort, the more fully specified the task.
@@ -32,8 +47,11 @@ costly; the lower the effort, the more fully specified the task.
 | run a command & report (build / test / lint / migration / log) | Haiku | — | `haiku-runner` |
 | well-specified implementation (the common case) | Sonnet | `medium` | `sonnet-executor` |
 | delicate: cross-module integration, contract-touching refactor | Sonnet | `high` | `sonnet-executor-high` |
+| a whole RFC / complete front: wide scope + design judgment (GATED — see below) | Opus | `medium` | `opus-executor` |
 
-Pick the lowest tier that fits; the default is `sonnet-executor`. Apply the choice in the spawn
+Pick the lowest tier that fits; the default is `sonnet-executor`. **Opus is gated:** the `opus-executor`
+tier is recruited ONLY when the user explicitly asks, in chat, to run a front on Opus. It is never the
+default and never auto-selected — absent an explicit request the ceiling is `sonnet-executor-high`. Apply the choice in the spawn
 instruction: name the matching `subagent_type`, name the intended model/effort, and confirm the
 created teammate actually matches. The defs in `assets/roster/` carry the role behavior, tools, and
 model/effort defaults where the runtime honors them.
