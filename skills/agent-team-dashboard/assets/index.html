@@ -37,6 +37,11 @@
   header.bar{display:flex;align-items:center;gap:14px;padding:16px 20px;margin-bottom:18px}
   .title{font-size:20px;font-weight:700;letter-spacing:.2px}
   .title .dim{color:var(--muted);font-weight:500}
+  .title .tlabel{cursor:text;border-radius:5px;padding:1px 4px;margin:-1px -4px}
+  .title .tlabel:hover{background:var(--card2,rgba(128,128,128,.12))}
+  .title .tlabel:hover::after{content:' \270E';font-size:12px;color:var(--muted);font-weight:400}
+  .title .tlabel.editing{outline:1.5px solid var(--accent,#7a9);background:transparent;cursor:text}
+  .title .tlabel.editing::after{content:''}
   .chip{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel-2);
     border:1px solid var(--border);padding:4px 9px;border-radius:999px;white-space:nowrap}
   .spacer{flex:1}
@@ -388,7 +393,7 @@ const renderRich=text=>jsonToHtml(text)||mdToHtml(text);
 const CIRC=2*Math.PI*56;
 const STATUS_LANES=[{k:'blocked',t:'bloqueada',c:'var(--block)'},{k:'pending',t:'pendente',c:'var(--pend)'},{k:'in_progress',t:'em progresso',c:'var(--run)'},{k:'completed',t:'concluída',c:'var(--ok)'}];
 
-let REFRESH=4, left=4, filterFrom=null, openMsgs=new Set(), convTab='shared';
+let REFRESH=4, left=4, filterFrom=null, openMsgs=new Set(), convTab='shared', labelEditing=false;
 let boardMode=localStorage.getItem('boardMode')||'grade';
 const sysTheme=()=>matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';
 // 'claude-dash-theme' only set when user manually clicks toggle; otherwise always follow system
@@ -425,9 +430,20 @@ function renderBoard(s,phs,byId){
 
 function render(s){
   const repoNm=(s.repo||'').split('/').filter(Boolean).pop()||'dashboard';
-  const teamId=s.team||'team', teamShort=/^[0-9a-f-]{16,}$/i.test(teamId)?('time '+teamId.slice(0,8)):teamId;
-  const hdr=document.getElementById('hdrTitle'); hdr.title=teamId;
-  hdr.innerHTML=esc(teamShort)+' <span class="dim">· '+esc(repoNm)+'</span>';
+  const teamId=s.team||'team';
+  const lsKey='teamLabel:'+teamId, stored=localStorage.getItem(lsKey);
+  const teamShort=stored||s.teamLabel||(/^[0-9a-f-]{16,}$/i.test(teamId)?('time '+teamId.slice(0,8)):teamId);
+  const hdr=document.getElementById('hdrTitle'); hdr.title='clique no nome pra renomear este team (salvo só neste navegador) · id: '+teamId;
+  if(!labelEditing){
+    hdr.innerHTML='<span id="tlabel" class="tlabel">'+esc(teamShort)+'</span> <span class="dim">· '+esc(repoNm)+'</span>';
+    const el=document.getElementById('tlabel');
+    el.onclick=()=>{ if(labelEditing)return; labelEditing=true; el.contentEditable='true'; el.classList.add('editing'); el.focus();
+      const r=document.createRange(); r.selectNodeContents(el); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); };
+    el.onkeydown=(e)=>{ if(e.key==='Enter'){e.preventDefault(); el.blur();} else if(e.key==='Escape'){el.textContent=teamShort; el.blur();} };
+    el.onblur=()=>{ labelEditing=false; el.contentEditable='false'; el.classList.remove('editing');
+      const v=el.textContent.trim();
+      if(v && v!==teamShort){ localStorage.setItem(lsKey,v); } else if(!v){ localStorage.removeItem(lsKey); el.textContent=s.teamLabel||teamShort; } };
+  }
   document.title=teamShort+' · live';
   document.getElementById('branch').textContent=s.branch||'—';
   document.getElementById('liveTxt').innerHTML='atualizado '+ago(s.generatedAt)+' atrás · próximo em <b id="cd">'+left+'s</b>';

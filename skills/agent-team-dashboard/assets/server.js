@@ -21,6 +21,7 @@ function detectTeam() {
 const TEAM = process.env.TEAM || detectTeam();
 const PORT = Number(process.env.PORT || 4317);
 const REPO = process.env.REPO || process.cwd();
+const TEAM_LABEL = process.env.TEAM_LABEL || '';  // friendly title; falls back to short team id
 const TASKS_DIR = join(HOME, '.claude', 'tasks', TEAM);
 const INBOX_DIR = join(HOME, '.claude', 'teams', TEAM, 'inboxes');
 const CONFIG = join(HOME, '.claude', 'teams', TEAM, 'config.json');
@@ -415,6 +416,7 @@ function state() {
   const cm = commits();
   return {
     team: TEAM,
+    teamLabel: TEAM_LABEL,
     repo: REPO,
     branch: gitSafe('rev-parse --abbrev-ref HEAD'),
     generatedAt: new Date().toISOString(),
