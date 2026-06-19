@@ -213,11 +213,24 @@ function commits() {
 }
 
 function agents() {
+  // config.json is the primary source (carries agentType/model/joinedAt) for live or
+  // legacy teams. But the spawn-direct flow (CLI v2.1.178+: no TeamCreate) never writes
+  // config.json, so fall back to live sources to recover the roster: task owners
+  // (TaskCreate+owner is mandatory), inbox files, and per-agent transcript streams.
+  const byName = new Map();
   const cfg = readJson(CONFIG, { members: [] });
-  return (cfg.members || []).map((m) => ({
-    name: m.name, type: m.agentType || '', id: m.agentId || '',
-    model: m.model || '', joinedAt: m.joinedAt || 0,
-  }));
+  for (const m of cfg.members || []) {
+    if (!m || !m.name) continue;
+    byName.set(m.name, { name: m.name, type: m.agentType || '', id: m.agentId || '', model: m.model || '', joinedAt: m.joinedAt || 0 });
+  }
+  const add = (n) => {
+    if (!n || n === 'team-lead' || n === TEAM || byName.has(n)) return;
+    byName.set(n, { name: n, type: '', id: '', model: '', joinedAt: 0 });
+  };
+  for (const t of tasks()) add(t.owner);
+  try { for (const f of readdirSync(INBOX_DIR)) if (f.endsWith('.json')) add(f.replace(/\.json$/, '')); } catch {}
+  for (const n of Object.keys(agentFiles())) add(n);
+  return [...byName.values()];
 }
 
 // ---- Per-agent streams (read-only): each teammate's own transcript as a chat ----
