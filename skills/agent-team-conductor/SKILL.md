@@ -3,7 +3,7 @@ name: agent-team-conductor
 description: >
   Use when preparing an agent-team teammate: choose the model that fits the workload
   (Haiku / Sonnet / Sonnet-high / Opus) and write a clear xml-like task prompt with a
-  minimal focused handoff. Triggers: spawning a teammate, Agent(team_name=…), "which model for this
+  minimal focused handoff. Triggers: spawning a teammate, Agent(name=…), "which model for this
   member", "how to structure the teammate prompt".
 license: Proprietary
 metadata:
@@ -30,7 +30,8 @@ explicit task records via `TaskCreate` (one task per unit of work) and assigned 
 only inside the spawn `<task>` brief — that leaves `~/.claude/tasks/<team>/` empty, breaks the dashboard
 board (shows 0/0), and erases the audit trail.
 
-Order: `TeamCreate` -> `TaskCreate` for every work unit -> spawn teammates (`Agent` with `team_name`) ->
+Order: `TaskCreate` for every work unit -> spawn teammates via `Agent(name=…)` (no team-creation step
+-- the session is already an implicit team with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` on) ->
 `TaskUpdate owner=<teammate>` to assign -> teammates flip status as they progress. The spawn `<task>`
 brief still carries the self-contained context, but it POINTS AT the task it owns; it does not replace it.
 

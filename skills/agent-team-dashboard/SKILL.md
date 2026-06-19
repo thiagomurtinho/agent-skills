@@ -4,7 +4,7 @@ description: >
   Sobe um dashboard web live (auto-refresh) para acompanhar um agent team do Claude Code —
   anel de progresso, quadro de tarefas (grade por fase ou kanban por status), cards dos
   agentes e feed de conversas entre eles. Use quando estiver orquestrando um team (após
-  TeamCreate/Agent/SendMessage) e o trabalho for longo, ou quando o usuário pedir para
+  spawnar teammates com Agent/SendMessage) e o trabalho for longo, ou quando o usuário pedir para
   "acompanhar o time", "ver o progresso dos agentes", "dashboard do team" ou quiser visão
   visual em vez de ler idle-notifications no chat. Roda local, abre o navegador sozinho.
 license: Proprietary

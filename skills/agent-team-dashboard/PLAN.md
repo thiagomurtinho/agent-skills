@@ -95,7 +95,7 @@ name: agent-team-dashboard
 description: >
   Sobe um dashboard web live (auto-refresh) pra acompanhar um agent team do
   Claude Code — progresso, quadro de tarefas (grade/kanban), agentes e conversas.
-  Use quando estiver orquestrando um team (TeamCreate/Agent/SendMessage) e quiser
+  Use quando estiver orquestrando um team (spawnar teammates com Agent/SendMessage) e quiser
   ver o andamento visualmente em vez de ler idle-notifications no chat.
 ---
 ```
@@ -108,7 +108,7 @@ description: >
 ## 5. Gatilhos (quando a skill dispara)
 
 - usuário diz "acompanhar o time", "dashboard do team", "ver progresso dos agentes", "watch the team"
-- logo após um `TeamCreate` quando o trabalho vai ser longo
+- logo após spawnar os teammates quando o trabalho vai ser longo
 - usuário pede visão visual em vez do chat
 
 NÃO disparar pra: tarefa single-agent, ou quando não há team ativo.
