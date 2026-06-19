@@ -139,6 +139,7 @@ function tasks() {
       owner: t.owner || '',
       status: t.status || 'pending',
       blockedBy: (t.blockedBy || []).map(Number),
+      metadata: t.metadata || {},
       phase: (String(t.subject).match(/F(\d)/) || [, '?'])[1],
     }))
     .sort((a, b) => a.id - b.id);
@@ -221,15 +222,23 @@ function agents() {
   const cfg = readJson(CONFIG, { members: [] });
   for (const m of cfg.members || []) {
     if (!m || !m.name) continue;
-    byName.set(m.name, { name: m.name, type: m.agentType || '', id: m.agentId || '', model: m.model || '', joinedAt: m.joinedAt || 0 });
+    byName.set(m.name, { name: m.name, type: m.agentType || '', id: m.agentId || '', model: m.model || '', effort: m.effort || '', joinedAt: m.joinedAt || 0 });
   }
   const add = (n) => {
     if (!n || n === 'team-lead' || n === TEAM || byName.has(n)) return;
-    byName.set(n, { name: n, type: '', id: '', model: '', joinedAt: 0 });
+    byName.set(n, { name: n, type: '', id: '', model: '', effort: '', joinedAt: 0 });
   };
-  for (const t of tasks()) add(t.owner);
+  const ts = tasks();
+  for (const t of ts) add(t.owner);
   try { for (const f of readdirSync(INBOX_DIR)) if (f.endsWith('.json')) add(f.replace(/\.json$/, '')); } catch {}
   for (const n of Object.keys(agentFiles())) add(n);
+  // Enrich model/effort from the owned task's metadata (spawn-direct has no config.json,
+  // but the roster's model/effort is written into each task's metadata at materialization).
+  for (const t of ts) {
+    const a = byName.get(t.owner); if (!a) continue;
+    if (!a.model && t.metadata && t.metadata.model) a.model = t.metadata.model;
+    if (!a.effort && t.metadata && t.metadata.effort) a.effort = t.metadata.effort;
+  }
   return [...byName.values()];
 }
 
