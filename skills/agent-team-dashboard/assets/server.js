@@ -21,6 +21,7 @@ function detectTeam() {
 const TEAM = process.env.TEAM || detectTeam();
 const PORT = Number(process.env.PORT || 4317);
 const REPO = process.env.REPO || process.cwd();
+const TEAM_LABEL = process.env.TEAM_LABEL || '';  // friendly title; falls back to short team id
 const TASKS_DIR = join(HOME, '.claude', 'tasks', TEAM);
 const INBOX_DIR = join(HOME, '.claude', 'teams', TEAM, 'inboxes');
 const CONFIG = join(HOME, '.claude', 'teams', TEAM, 'config.json');
@@ -139,6 +140,7 @@ function tasks() {
       owner: t.owner || '',
       status: t.status || 'pending',
       blockedBy: (t.blockedBy || []).map(Number),
+      metadata: t.metadata || {},
       phase: (String(t.subject).match(/F(\d)/) || [, '?'])[1],
     }))
     .sort((a, b) => a.id - b.id);
@@ -213,11 +215,32 @@ function commits() {
 }
 
 function agents() {
+  // config.json is the primary source (carries agentType/model/joinedAt) for live or
+  // legacy teams. But the spawn-direct flow (CLI v2.1.178+: no TeamCreate) never writes
+  // config.json, so fall back to live sources to recover the roster: task owners
+  // (TaskCreate+owner is mandatory), inbox files, and per-agent transcript streams.
+  const byName = new Map();
   const cfg = readJson(CONFIG, { members: [] });
-  return (cfg.members || []).map((m) => ({
-    name: m.name, type: m.agentType || '', id: m.agentId || '',
-    model: m.model || '', joinedAt: m.joinedAt || 0,
-  }));
+  for (const m of cfg.members || []) {
+    if (!m || !m.name) continue;
+    byName.set(m.name, { name: m.name, type: m.agentType || '', id: m.agentId || '', model: m.model || '', effort: m.effort || '', joinedAt: m.joinedAt || 0 });
+  }
+  const add = (n) => {
+    if (!n || n === 'team-lead' || n === TEAM || byName.has(n)) return;
+    byName.set(n, { name: n, type: '', id: '', model: '', effort: '', joinedAt: 0 });
+  };
+  const ts = tasks();
+  for (const t of ts) add(t.owner);
+  try { for (const f of readdirSync(INBOX_DIR)) if (f.endsWith('.json')) add(f.replace(/\.json$/, '')); } catch {}
+  for (const n of Object.keys(agentFiles())) add(n);
+  // Enrich model/effort from the owned task's metadata (spawn-direct has no config.json,
+  // but the roster's model/effort is written into each task's metadata at materialization).
+  for (const t of ts) {
+    const a = byName.get(t.owner); if (!a) continue;
+    if (!a.model && t.metadata && t.metadata.model) a.model = t.metadata.model;
+    if (!a.effort && t.metadata && t.metadata.effort) a.effort = t.metadata.effort;
+  }
+  return [...byName.values()];
 }
 
 // ---- Per-agent streams (read-only): each teammate's own transcript as a chat ----
@@ -393,6 +416,7 @@ function state() {
   const cm = commits();
   return {
     team: TEAM,
+    teamLabel: TEAM_LABEL,
     repo: REPO,
     branch: gitSafe('rev-parse --abbrev-ref HEAD'),
     generatedAt: new Date().toISOString(),
